@@ -43,14 +43,14 @@ type Context struct {
 	Request   *http.Request
 	Writer    ResponseWriter
 
-	Params   Params
-	handlers HandlerChain
-	index    int8
+	Params    Params
+	handlers  HandlerChain
+	index     int8
 
-	engine   *Engine
-	Keys     map[string]interface{}
-	Errors   errorMsgs
-	Accepted []string
+	illusion  *Illusion
+	Keys      map[string]interface{}
+	Errors    errorMsgs
+	Accepted  []string
 }
 
 var _ context.Context = &Context{}
@@ -309,7 +309,7 @@ func (c *Context) BindWith(obj interface{}, b binding.Binding) error {
 // ClientIP implements a best effort algorithm to return the real client IP, it parses
 // X-Real-IP and X-Forwarded-For in order to work properly with reverse-proxies such us: nginx or haproxy.
 func (c *Context) ClientIP() string {
-	if c.engine.ForwardedByClientIP {
+	if c.illusion.ForwardedByClientIP {
 		clientIP := strings.TrimSpace(c.requestHeader("X-Real-Ip"))
 		if len(clientIP) > 0 {
 			return clientIP
@@ -403,7 +403,7 @@ func (c *Context) Render(code int, r render.Render) {
 // It also updates the HTTP code and sets the Content-Type as "text/html".
 // See http://golang.org/doc/articles/wiki/
 func (c *Context) HTML(code int, name string, obj interface{}) {
-	instance := c.engine.HTMLRender.Instance(name, obj)
+	instance := c.illusion.HTMLRender.Instance(name, obj)
 	c.Render(code, instance)
 }
 
