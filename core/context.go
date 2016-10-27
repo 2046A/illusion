@@ -1,10 +1,6 @@
 package core
 
-import "httprouter"
-
-//context，且看下面
+//context，每一个http请求对应一个Context实例
 type Context struct {
-	params httprouter.Params
+	params Params
 }
-
-
