@@ -77,16 +77,6 @@ type Blueprint struct {
 ///return
 //}
 
-//结合beforeChain + Handler + afterChain形成一个调用链
-func (it *Blueprint) fullChain(handler HandlerFunc) HandlerChain {
-	return nil
-}
-
-//结合blueprint.BasePath + relativePath形成绝对Url
-func (it *Blueprint) TruePath(relativePath string) string {
-	return CleanPath(it.BasePath + "/" + relativePath)
-}
-
 //如下是Blueprint需要实现的接口
 //func NewBlueprint() *Blueprint {
 //	return Blueprint("/", "home")
@@ -103,6 +93,16 @@ func Blueprint(path, name string) *Blueprint {
 	}
 }
 
+//结合beforeChain + Handler + afterChain形成一个调用链
+func (it *Blueprint) fullChain(handler HandlerFunc) HandlerChain {
+	return nil
+}
+
+//结合blueprint.BasePath + relativePath形成绝对Url
+func (it *Blueprint) TruePath(relativePath string) string {
+	return CleanPath(it.BasePath + "/" + relativePath)
+}
+
 func (it *Blueprint) Before(handler HandlerFunc) BluePrinter {
 	it.BeforeChain = append(it.BeforeChain, handler)
 	return it
@@ -113,10 +113,15 @@ func (it *Blueprint) After(handler HandlerFunc) BluePrinter {
 	return it
 }
 
-func (it *Blueprint) Handle(httpMethod, basePath string, handler HandlerFunc) BluePrinter {
+func (it *Blueprint) Handle(httpMethod, relativePath string, handler HandlerFunc) BluePrinter {
 	if matches, err := regexp.MatchString("^[A-Z]+$", httpMethod); !matches || err != nil {
 		it.Err = err
 		panic("http method " + httpMethod + " is not valid")
 	}
-	return
+	handlers := it.fullChain(handler)
+	finalPath := it.TruePath(relativePath)
+	//这是illusion所缺少的啦
+	it.illusion.addRoute(httpMethod, finalPath, handlers)
+	return it
 }
+
