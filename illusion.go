@@ -1,4 +1,4 @@
-package core
+package illusion
 
 import "sync"
 
@@ -6,8 +6,11 @@ import "sync"
 const Version = "v0.0.1"
 
 //基本处理handler定义
-type HandlerFunc  func(*Context)
-type HandlerChain     []HandlerFunc
+type HandlerFunc func(*Context)
+type HandlerChain []HandlerFunc
+type trees map[string]*node
+
+//type methodTree
 
 //核心结构，核心路由器
 //这是对httpRouter的改版，参考自gin
@@ -18,16 +21,17 @@ type Illusion struct {
 }
 
 var defaultIllusion *Illusion
-var once  sync.Once
-func globalIllusion()*Illusion{
-	once.Do(func(){
+var once sync.Once
+
+func globalIllusion() *Illusion {
+	once.Do(func() {
 		defaultIllusion = new(Illusion)
 	})
 	return defaultIllusion
 }
 
 //返回一个新的
-func (it *Illusion)New()(bluePrint Blueprint){
+func (it *Illusion) New() (bluePrint Blueprint) {
 	bluePrint = &Blueprint("/", "global")
 	return
 }

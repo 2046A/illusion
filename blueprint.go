@@ -6,7 +6,7 @@
 // globalApp.register(backend)
 // globalApp.Run(":8080")
 
-package core
+package illusion
 
 import "regexp"
 
@@ -41,7 +41,6 @@ type BluePrinter interface {
 	StaticFs(string, string) BluePrinter
 }
 
-
 type Blueprint struct {
 	//对应此Blueprint的基础路径
 	BasePath string
@@ -66,7 +65,7 @@ type Blueprint struct {
 	//必须要持有的核心路由
 	//不显示持有也可以，但不明显，最好持有
 	//核心路由在全局是个单例
-	illusion  *Illusion
+	illusion *Illusion
 }
 
 //将handler合并进一个数组中
@@ -75,16 +74,16 @@ type Blueprint struct {
 //}
 
 //func (it *Blueprint)extendAfterChain(Handler HandlerFunc){
-	///return
+///return
 //}
 
 //结合beforeChain + Handler + afterChain形成一个调用链
-func (it *Blueprint)fullChain(handler HandlerFunc)HandlerChain{
+func (it *Blueprint) fullChain(handler HandlerFunc) HandlerChain {
 	return nil
 }
 
 //结合blueprint.BasePath + relativePath形成绝对Url
-func (it *Blueprint)TruePath(relativePath string) string{
+func (it *Blueprint) TruePath(relativePath string) string {
 	return CleanPath(it.BasePath + "/" + relativePath)
 }
 
@@ -95,27 +94,27 @@ func (it *Blueprint)TruePath(relativePath string) string{
 
 func Blueprint(path, name string) *Blueprint {
 	return &Blueprint{
-		BasePath: path,
-		Name: name,
+		BasePath:    path,
+		Name:        name,
 		BeforeChain: make(HandlerChain, 0, 5), //最大的beforeChain个数
-		AfterChain: make(HandlerChain, 0, 5), //最大的AfterChain个数
-		Err: nil,
-		illusion: globalIllusion(),
+		AfterChain:  make(HandlerChain, 0, 5), //最大的AfterChain个数
+		Err:         nil,
+		illusion:    globalIllusion(),
 	}
 }
 
-func (it *Blueprint)Before(handler HandlerFunc) BluePrinter{
+func (it *Blueprint) Before(handler HandlerFunc) BluePrinter {
 	it.BeforeChain = append(it.BeforeChain, handler)
 	return it
 }
 
-func (it *Blueprint)After(handler HandlerFunc) BluePrinter{
+func (it *Blueprint) After(handler HandlerFunc) BluePrinter {
 	it.AfterChain = append(it.AfterChain, handler)
 	return it
 }
 
-func (it *Blueprint)Handle(httpMethod,basePath string, handler HandlerFunc)BluePrinter{
-	if matches, err := regexp.MatchString("^[A-Z]+$", httpMethod); !matches|| err!=nil{
+func (it *Blueprint) Handle(httpMethod, basePath string, handler HandlerFunc) BluePrinter {
+	if matches, err := regexp.MatchString("^[A-Z]+$", httpMethod); !matches || err != nil {
 		it.Err = err
 		panic("http method " + httpMethod + " is not valid")
 	}
