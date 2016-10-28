@@ -105,7 +105,8 @@ func globalIllusion() *Illusion {
 }*/
 
 //返回一个新的Illusion实例
-func NewApp() (illusion *Illusion,b *Blueprint) {
+//鉴于难以抉择，还是把illusion和blueprint的实例化分开为好
+func NewApp()(illusion *Illusion) {
 	illusion = &Illusion{
 		render: nil,
 		methodTree: make(MethodTree),
@@ -118,8 +119,8 @@ func NewApp() (illusion *Illusion,b *Blueprint) {
 	illusion.pool.New = func() interface{}{
 		return illusion.allocateContext()
 	}
-	b =  Blueprint("/", "default")
-	illusion.Register(b)
+	//b =  Blueprint("/", "default")
+	//illusion.Register(b)
 	return
 }
 
