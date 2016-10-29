@@ -1,19 +1,19 @@
 package illusion
 
 import (
-	"sync"
-	"net/http"
 	"fmt"
+	"net/http"
+	"sync"
 )
 
 //版本号,什么鬼:)
 const Version = "v0.0.1"
 
 //基本处理handler定义
-type HandlerFunc    func(*Context)
-type HandlerChain   []HandlerFunc
-type MethodTree     map[string]*node
-type BluePrintTree  []*Blueprint
+type HandlerFunc func(*Context)
+type HandlerChain []HandlerFunc
+type MethodTree map[string]*node
+type BluePrintTree []*Blueprint
 
 //Illusion应该实现的接口
 type IIllusion interface {
@@ -38,10 +38,10 @@ type IIllusion interface {
 //那么Illusion的初始化就是返回一个新的BluePrint ??? 很不错的样子
 type Illusion struct {
 	//路由器
-	render    Render
+	render Render
 
 	//最终查找数据存放地
-	methodTree  MethodTree
+	methodTree MethodTree
 
 	//BluePrint存放地，调用register时blueprint会被临时存放在这里
 	//在最终运行前，这个应该被垃圾回收
@@ -79,7 +79,10 @@ type Illusion struct {
 	// If no other Method is allowed, the request is delegated to the NotFound
 	// handler.
 	HandleMethodNotAllowed bool
-	ForwardedByClientIP    bool
+
+	//在context中已经被使用了
+	//这个...
+	ForwardedByClientIP bool
 }
 
 /*var defaultIllusion *Illusion
@@ -106,17 +109,17 @@ func globalIllusion() *Illusion {
 
 //返回一个新的Illusion实例
 //鉴于难以抉择，还是把illusion和blueprint的实例化分开为好
-func NewApp()(illusion *Illusion) {
+func NewApp() (illusion *Illusion) {
 	illusion = &Illusion{
-		render: nil,
-		methodTree: make(MethodTree),
-		bluePrintTree: make(BluePrintTree, 0, 100),//最大BluePrint的个数，默认100个
-		RedirectTrailingSlash: true,
-		RedirectFixedPath: false,
-		HandleMethodNotAllowed: false,
-		ForwardedByClientIP: true,
+		render:                 nil,
+		methodTree:             make(MethodTree),
+		bluePrintTree:          make(BluePrintTree, 0, 100), //最大BluePrint的个数，默认100个
+		RedirectTrailingSlash:  true,
+		RedirectFixedPath:      false,
+		HandleMethodNotAllowed: false, //并没有使用的一个特性
+		ForwardedByClientIP:    true,
 	}
-	illusion.pool.New = func() interface{}{
+	illusion.pool.New = func() interface{} {
 		return illusion.allocateContext()
 	}
 	//b =  Blueprint("/", "default")
@@ -124,49 +127,50 @@ func NewApp()(illusion *Illusion) {
 	return
 }
 
-func (it *Illusion)allocateContext() *Context{
+func (it *Illusion) allocateContext() *Context {
 	//Context还没有设计...
-	return new(Context)
+	return newContext()
 }
 
-func (it *Illusion)Register(bluePrint Blueprint) *Illusion{
+func (it *Illusion) Register(bluePrint *Blueprint) *Illusion {
 	it.bluePrintTree = append(it.bluePrintTree, bluePrint)
 	return it
 }
 
-func (it *Illusion)lazyRegisterAll()*Illusion{
-	for _,bluePrint := range it.bluePrintTree{
-		//http方法和对应的url->handler
-		for httpMethod,methodMap := range bluePrint.MethodHashMap{
-			//http方法中的一个tree
-			tree := it.methodTree[httpMethod]
-			for urlPath,HandlerFunc := range methodMap{
-				//把url->handler放入对应的tree中
-				tree.addRoute(urlPath, HandlerFunc)
-			}
+func (it *Illusion) lazyRegisterAll() *Illusion {
+	//var tree *node
+	for _, bluePrint := range it.bluePrintTree {
+		handlerInfoChain := bluePrint.fullChain()
+		for _, info := range handlerInfoChain {
+			it.addRoute(info.HttpMethod, info.RelativePath, info.HandlerChain)
 		}
 	}
 	return it
 }
 
-//设置view基础路径
-func (it *Illusion)BaseViewPath(path string) *Illusion{
+//设置view目录
+func (it *Illusion) ViewPath(path string) *Illusion {
 	//todo insert code here
 	return it
 }
 
+//设置js,css等静态文件目录
+func (it *Illusion) Resource(path string) *Illusion {
+	return it
+}
+
 //添加handle到指定的uriPath
-func (it *Illusion)addRoute(httpMethod,uriPath string, handler HandlerFunc){
+func (it *Illusion) addRoute(httpMethod, uriPath string, handlerChain HandlerChain) {
 	tree := it.methodTree[httpMethod]
 	if tree == nil {
 		tree = new(node)
 		it.methodTree[httpMethod] = tree
 	}
-	tree.addRoute(uriPath, handler)
+	tree.addRoute(uriPath, handlerChain)
 }
 
 //只有在出错的情况下此函数才会返回
-func (it *Illusion)Run(address string)(err error){
+func (it *Illusion) Run(address string) (err error) {
 	//address := resolveAddress
 	fmt.Println("Listening and serving HTTP on ", address)
 
@@ -178,8 +182,15 @@ func (it *Illusion)Run(address string)(err error){
 }
 
 //如下应该是作为router必须要实现的一些接口了
-func (it *Illusion)ServeHttp(w http.ResponseWriter,req *http.Request){
+//据源代码只是,只要实现这一个接口就好了
+//肯定是这样的　:) :)
+func (it *Illusion) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	context := it.pool.Get().(*Context)
+
+	//清理原内容
+	context.reset()
+	context.Request = req
+	context.Writer = w
 
 	it.handleRequest(context)
 
@@ -187,54 +198,32 @@ func (it *Illusion)ServeHttp(w http.ResponseWriter,req *http.Request){
 }
 
 //内部真正处理路由
-func (it *Illusion)handleRequest(context *Context){
+func (it *Illusion) handleRequest(context *Context) {
 	httpMethod := context.Request.Method
 	path := context.Request.URL.Path
 
-	//找出给定httpMethod的根
-	for HttpMethod, root := range it.methodTree{
-		//找到根了
-		if HttpMethod == httpMethod {
-			//找到处理handler
-			handlers, params, tsr := root.getValue(path)
-			if handlers != nil {
-				context.handlers = handlers
-				context.Params = params
-				context.Next()
-				context.writermem.Write
-			}
+	//找到http方法下面挂着的根
+	root := it.methodTree[httpMethod]
+	handlers, params, tsr := root.getValue(path)
+	if handlers != nil {
+		context.handlers = handlers
+		context.Params = params
+		context.Next()
+		//WriteHeaderNow是什么意思啊?
+		return
+	} else if httpMethod != "CONNECT" && path != "/" {
+		if tsr && it.RedirectTrailingSlash {
+			redirectTrailingSlash(context)
+			return
 		}
-	}
-
-	// Find root of the tree for the given HTTP method
-	t := it.trees
-	for i, tl := 0, len(t); i < tl; i++ {
-		if t[i].method == httpMethod {
-			root := t[i].root
-			// Find route in tree
-			handlers, params, tsr := root.getValue(path, context.Params)
-			if handlers != nil {
-				context.handlers = handlers
-				context.Params = params
-				context.Next()
-				context.writermem.WriteHeaderNow()
-				return
-
-			} else if httpMethod != "CONNECT" && path != "/" {
-				if tsr && it.RedirectTrailingSlash {
-					redirectTrailingSlash(context)
-					return
-				}
-				if it.RedirectFixedPath && redirectFixedPath(context, root, it.RedirectFixedPath) {
-					return
-				}
-			}
-			break
+		if it.RedirectFixedPath && redirectFixedPath(context, root, it.RedirectFixedPath) {
+			return
 		}
 	}
 
 	// TODO: unit test
-	if it.HandleMethodNotAllowed {
+	// TODO: 这个够不着, 手短
+	/*if it.HandleMethodNotAllowed {
 		for _, tree := range it.trees {
 			if tree.method != httpMethod {
 				if handlers, _, _ := tree.root.getValue(path, nil); handlers != nil {
@@ -246,7 +235,47 @@ func (it *Illusion)handleRequest(context *Context){
 		}
 	}
 	context.handlers = it.allNoRoute
-	serveError(context, 404, default404Body)
+	serveError(context, 404, default404Body)*/
 }
 
+func redirectTrailingSlash(c *Context) {
+	req := c.Request
+	path := req.URL.Path
+	code := 301 // Permanent redirect, request with GET method
+	if req.Method != "GET" {
+		code = 307
+	}
 
+	if len(path) > 1 && path[len(path)-1] == '/' {
+		req.URL.Path = path[:len(path)-1]
+	} else {
+		req.URL.Path = path + "/"
+	}
+	fmt.Print("redirecting request %d: %s --> %s", code, path, req.URL.String())
+	http.Redirect(c.Writer, req, req.URL.String(), code)
+	//这个WriteHeaderNow是干嘛的 ?
+	//c.writermem.WriteHeaderNow()
+}
+
+func redirectFixedPath(c *Context, root *node, trailingSlash bool) bool {
+	req := c.Request
+	path := req.URL.Path
+
+	fixedPath, found := root.findCaseInsensitivePath(
+		CleanPath(path),
+		trailingSlash,
+	)
+	if found {
+		code := 301 // Permanent redirect, request with GET method
+		if req.Method != "GET" {
+			code = 307
+		}
+		req.URL.Path = string(fixedPath)
+		fmt.Print("redirecting request %d: %s --> %s", code, path, req.URL.String())
+		http.Redirect(c.Writer, req, req.URL.String(), code)
+		//这个函数到底是干嘛的 ????
+		//c.writermem.WriteHeaderNow()
+		return true
+	}
+	return false
+}

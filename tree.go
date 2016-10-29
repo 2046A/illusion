@@ -38,6 +38,10 @@ const (
 	catchAll nodeType = 2
 )
 
+//做一个简单的适配
+//哎呦我去，做到最简单了
+//type HandlerChain HandlerChain
+
 type node struct {
 	path      string
 	wildChild bool
@@ -45,7 +49,7 @@ type node struct {
 	maxParams uint8
 	indices   string
 	children  []*node
-	handle    Handle
+	handle    HandlerChain
 	priority  uint32
 }
 
@@ -77,7 +81,7 @@ func (n *node) incrementChildPrio(pos int) int {
 
 // addRoute adds a node with the given handle to the path.
 // Not concurrency-safe!
-func (n *node) addRoute(path string, handle Handle) {
+func (n *node) addRoute(path string, handle HandlerChain) {
 	fullPath := path
 	n.priority++
 	numParams := countParams(path)
@@ -198,7 +202,7 @@ func (n *node) addRoute(path string, handle Handle) {
 	}
 }
 
-func (n *node) insertChild(numParams uint8, path, fullPath string, handle Handle) {
+func (n *node) insertChild(numParams uint8, path, fullPath string, handle HandlerChain) {
 	var offset int // already handled bytes of the path
 
 	// find prefix until first wildcard (beginning with ':'' or '*'')
@@ -316,7 +320,7 @@ func (n *node) insertChild(numParams uint8, path, fullPath string, handle Handle
 // If no handle can be found, a TSR (trailing slash redirect) recommendation is
 // made if a handle exists with an extra (without the) trailing slash for the
 // given path.
-func (n *node) getValue(path string) (handle Handle, p Params, tsr bool) {
+func (n *node) getValue(path string) (handle HandlerChain, p Params, tsr bool) {
 walk: // Outer loop for walking the tree
 	for {
 		if len(path) > len(n.path) {

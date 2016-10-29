@@ -6,10 +6,10 @@ package illusion
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
-	"fmt"
 )
 
 const (
@@ -116,4 +116,3 @@ func (w *responseWriter) CloseNotify() <-chan bool {
 func (w *responseWriter) Flush() {
 	w.ResponseWriter.(http.Flusher).Flush()
 }
-
