@@ -14,10 +14,25 @@ import (
 	//"path/filepath"
 )
 
+const (
+	//这些只是软性的, 切片的长度还是没法软性的控制
+	//意义不大
+	MaxMiddlewareNumber = 5 //blueprint最大中间件个数, Before5个, After5个
+	MaxHandlerNumber = 30 // blueprint所能注册的最多handler个数
+	CompleteHandlerChainSize = 11 //一个调用链中HandlerFunc的最大个数, 5 + 5 + 1
+)
+
 //存储一个完整调用链
+//在illusion真正执行前blueprint会调用fullChain来生成此结构切片
+//illusion把切片的所有信息注册到路由中
 type HandlerInfo struct {
+	//GET, POST, DELETE等
 	HttpMethod   string
+
+	//完整路径,名字很骗人
 	RelativePath string
+
+	//完整调用链
 	HandlerChain HandlerChain
 }
 
@@ -54,11 +69,11 @@ func (ps Params) ByName(name string) (va string) {
 }
 
 //每个httpMethod下面会有很多path->HandlerFunc的映射
-type methodMap map[string]HandlerFunc
+type pathToHandlerMap map[string]HandlerFunc
 
 //有什么很好的存储格式???
 //这个存储格式太丑了 httpMethod -> MethodMap
-type methodHashMap map[string]methodMap
+type httpRouterMap map[string]pathToHandlerMap
 
 //Blueprint应该实现的接口
 //供参考
@@ -95,11 +110,11 @@ type BluePrinter interface {
 //在Blueprint被注册到Illusion前，会持有所有的相关信息
 type Blueprint struct {
 	//对应此Blueprint的基础路径
-	BasePath string
+	BasePath      string
 
 	//名称
 	//名称应该唯一
-	Name string
+	Name          string
 
 	//处理链, 可以一次性存储，
 	//毕竟，你不会放太多的函数在调用链中, right? :)
@@ -107,22 +122,22 @@ type Blueprint struct {
 	//Handlers HandlerChain
 
 	//handler之前的处理链
-	BeforeChain HandlerChain
+	BeforeChain   HandlerChain
 
 	//handler之后的处理链
-	AfterChain HandlerChain
+	AfterChain    HandlerChain
 
 	//错误信息
-	Error error
+	Error         error
 
 	//必须要持有的核心路由
 	//不显示持有也可以，但不明显，最好持有
 	//核心路由在全局是个单例
 	//illusion *Illusion
-	//不用了
+	//不用了...
 
-	//存储所有的相关信息
-	MethodHashMap methodHashMap
+	//存储所有的handler
+	HttpRouterMap httpRouterMap
 }
 
 //将handler合并进一个数组中
@@ -139,13 +154,14 @@ type Blueprint struct {
 //	return Blueprint("/", "home")
 //}
 
+//获取一个新的蓝图
 func BluePrint(path, name string) *Blueprint {
 	return &Blueprint{
 		BasePath:      path,
 		Name:          name,
-		BeforeChain:   make(HandlerChain, 0, 5), //最大的beforeChain个数
-		AfterChain:    make(HandlerChain, 0, 5), //最大的AfterChain个数
-		MethodHashMap: make(methodHashMap),      //这个反倒好点
+		BeforeChain:   make(HandlerChain, 0, MaxMiddlewareNumber), //最大的beforeChain个数
+		AfterChain:    make(HandlerChain, 0, MaxMiddlewareNumber), //最大的AfterChain个数
+		HttpRouterMap: make(httpRouterMap),      //这个反倒好点
 		Error:         nil,
 		//illusion:    globalIllusion(),
 	}
@@ -157,9 +173,9 @@ func (it *Blueprint) fullChain() HandlerInfoChain {
 	if it.Error != nil {
 		return nil
 	}
-	chain := make(HandlerInfoChain, 0, 10)    //还得const来调整
-	handlerChain := make(HandlerChain, 0, 20) //这个...
-	for httpMethod, urlMap := range it.MethodHashMap {
+	chain := make(HandlerInfoChain, 0, CompleteHandlerChainSize)    //还得const来调整
+	handlerChain := make(HandlerChain, 0, MaxHandlerNumber) //这个...
+	for httpMethod, urlMap := range it.HttpRouterMap {
 		//urlMap为url -> handler
 		for url, handler := range urlMap {
 			handlerChain = append(handlerChain, it.BeforeChain...)
@@ -205,10 +221,10 @@ func (it *Blueprint) handle(httpMethod, relativePath string, handler HandlerFunc
 		return it
 	}
 	//暂时存储在map中
-	methodTree := it.MethodHashMap[httpMethod]
+	methodTree := it.HttpRouterMap[httpMethod]
 	if methodTree == nil {
-		methodTree = make(methodMap)
-		it.MethodHashMap[httpMethod] = methodTree
+		methodTree = make(pathToHandlerMap)
+		it.HttpRouterMap[httpMethod] = methodTree
 	}
 	methodTree[finalPath] = handler
 	//it.MethodHashMap[httpMethod][finalPath] = handler

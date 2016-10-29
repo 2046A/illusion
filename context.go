@@ -1,4 +1,5 @@
 //我就实现一个最简单的context好了
+//提高可读性
 
 package illusion
 
@@ -12,30 +13,32 @@ import (
 
 //这个好像没什么用
 const abortIndex int8 = 10
+const MaxParamSize = 20 //最大url参数个数，是指/user/:id中id这样的个数
+//const
 
 //Context还是先简单着来
 //因为我还闹不大明白很多东西, :)
 type Context struct {
 	//请求对象
-	Request *http.Request
+	Request  *http.Request
 
 	//response对象
-	Writer http.ResponseWriter
+	Writer   http.ResponseWriter
 
 	//额外参数
-	Params Params
+	Params   Params
 
 	//调用链
 	handlers HandlerChain
 
 	//额外附着在Context上的数据
-	Keys map[string]interface{}
+	Keys     map[string]interface{}
 
 	//错误信息
-	Error error
+	Error    error
 
 	//是否需要终止
-	abort bool
+	aborted  bool
 }
 
 //初始化一个Context
@@ -43,10 +46,11 @@ func newContext() *Context {
 	return &Context{
 		Request:  nil,
 		Writer:   nil,
-		Params:   make(Params, 0, 10),
-		handlers: make(HandlerChain, 0, 10),
+		Params:   make(Params, 0, MaxParamSize),
+		handlers: make(HandlerChain, 0, MaxHandlerNumber),
 		Keys:     make(map[string]interface{}),
 		Error:    nil,
+		aborted: false,
 	}
 }
 
@@ -58,9 +62,19 @@ func (it *Context) reset() {
 	it.Writer = nil
 	it.Keys = make(map[string]interface{})
 	it.Error = nil
+	it.aborted = false
 }
 
 //好像还有个问题, 让我想想？？？？？？？
+//abort的时候要确保能终止
+//让我想想 ....
+//还在想
+//还在想..
+func (it *Context) AbortWithStatus(code int) {
+	it.Status(code)
+	it.Abort()
+}
+
 func (it *Context) AbortWithError(code int, err error) {
 	it.Error = err
 	it.AbortWithStatus(code)
@@ -68,18 +82,13 @@ func (it *Context) AbortWithError(code int, err error) {
 
 //设置结束标志
 func (it *Context) Abort() {
-	it.abort = true
+	it.aborted = true
 }
 
 //判断是否结束
 //好像没什么用
 func (it *Context) IsAborted() bool {
-	return it.abort
-}
-
-func (it *Context) AbortWithStatus(code int) {
-	it.Status(code)
-	it.Abort()
+	return it.aborted
 }
 
 //开始处理http请求
@@ -91,7 +100,7 @@ func (it *Context) Next() {
 		//在context中添加Abort标志以示结束
 		handler(it)
 		//如果用户设置了Abort, 那么结束
-		if it.abort {
+		if it.aborted {
 			return
 		}
 	}
@@ -237,9 +246,11 @@ func (it *Context) Status(code int) {
 	it.Writer.WriteHeader(code)
 }
 
-func (it *Context) Write(value string) {
-	//试用
-	it.Status(http.StatusOK)
+//这个Write应该只能被调用一次就好
+//否则会报header被重复写的错误
+func (it *Context) Write(status int, value string) {
+	//这里出现了二次写头部的问题?????
+	it.Status(status)
 	it.Writer.Write([]byte(value))
 }
 

@@ -176,6 +176,7 @@ func (it *Illusion) Run(address string) (err error) {
 
 	//准备好所有的处理handler
 	it.lazyRegisterAll()
+
 	//illusion实现了所有相关的函数
 	err = http.ListenAndServe(address, it)
 	return
