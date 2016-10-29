@@ -109,7 +109,7 @@ func globalIllusion() *Illusion {
 
 //返回一个新的Illusion实例
 //鉴于难以抉择，还是把illusion和blueprint的实例化分开为好
-func NewApp() (illusion *Illusion) {
+func App() (illusion *Illusion) {
 	illusion = &Illusion{
 		render:                 nil,
 		methodTree:             make(MethodTree),

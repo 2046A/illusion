@@ -139,7 +139,7 @@ type Blueprint struct {
 //	return Blueprint("/", "home")
 //}
 
-func NewBlueprint(path, name string) *Blueprint {
+func BluePrint(path, name string) *Blueprint {
 	return &Blueprint{
 		BasePath:      path,
 		Name:          name,
