@@ -3,8 +3,8 @@ micro web framework for Go, for learning Go
 
 #### feature
 + 基于gin, 主要api兼容gin
-+ blueprint主意来自flask,用以取代gin的Group结构,这样不同的路由就可以分散到不同的文件中组织
-+ 别告诉我gin也可以，我可是看了源码的
++ blueprint主意来自flask,用以取代gin的Group结构，更便于不同路由功能的组织
++ 拥有请求前和请求后接口来组织中间件,会更简单明了
 
 #### DONE
 + 模板引擎
