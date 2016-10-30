@@ -11,7 +11,7 @@ type Title struct {
 func main(){
 	app := illusion.App()
 	app.ViewPath("example/template/view")
-	app.Resource("static")
+	app.Resource("example/static")
 	index := illusion.BluePrint("/", "index")
 	index.Get("/index", func(c *illusion.Context){
 		c.View("index.html", Title{Title: "我就是这么吊"})
