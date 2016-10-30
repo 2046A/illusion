@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"path/filepath"
+	"strings"
+	//"fs"
 )
 
 //版本号,什么鬼:)
@@ -25,7 +28,7 @@ type IIllusion interface {
 
 	//设置模板引擎
 	//最好不要用，用默认的就好
-	SetRender(Render) *Illusion
+	//SetRender(Render) *Illusion
 
 	//文件相关的加载
 	StaticFile(string, string) *Illusion
@@ -38,7 +41,10 @@ type IIllusion interface {
 //那么Illusion的初始化就是返回一个新的BluePrint ??? 很不错的样子
 type Illusion struct {
 	//路由器
-	render Render
+	//render Render
+
+	//错误信息
+	Error error
 
 	//最终查找数据存放地
 	methodTree MethodTree
@@ -51,6 +57,12 @@ type Illusion struct {
 	//Context临时存放地点，随时可以被回收的地点
 	//不安全，但能用
 	pool sync.Pool
+
+	//每个Context都会附着一个template，用以渲染模板文件
+	//不安全，但能用:))
+	templatePool sync.Pool
+	//writerPool sync.Pool //获取渲染后文件内容
+	viewPath     string //模板文件基础路径
 
 	//下面的待解释...
 
@@ -110,10 +122,13 @@ func globalIllusion() *Illusion {
 //返回一个新的Illusion实例
 //鉴于难以抉择，还是把illusion和blueprint的实例化分开为好
 func App() (illusion *Illusion) {
+	baseViewPath,_ := filepath.Abs(".")// + filepath.Separator + "view" //基础路径
+	baseViewPath += string(filepath.Separator) + "view" //基础路径
 	illusion = &Illusion{
-		render:                 nil,
+		//render:                 nil,
 		methodTree:             make(MethodTree),
 		bluePrintTree:          make(BluePrintTree, 0, 100), //最大BluePrint的个数，默认100个
+		viewPath: baseViewPath, //基础路径
 		RedirectTrailingSlash:  true,
 		RedirectFixedPath:      false,
 		HandleMethodNotAllowed: false, //并没有使用的一个特性
@@ -122,6 +137,12 @@ func App() (illusion *Illusion) {
 	illusion.pool.New = func() interface{} {
 		return illusion.allocateContext()
 	}
+	illusion.templatePool.New = func()interface{}{
+		return illusion.allocateTemplate(illusion.viewPath, illusion.allocateWriter())
+	}
+	//illusion.writerPool.New = func()interface{} {
+	//	return illusion.allocateWriter()
+	//}
 	//b =  Blueprint("/", "default")
 	//illusion.Register(b)
 	return
@@ -129,7 +150,39 @@ func App() (illusion *Illusion) {
 
 func (it *Illusion) allocateContext() *Context {
 	//Context还没有设计...
-	return newContext()
+	template := it.templatePool.Get().(*Template)
+	return newContext(template)
+}
+
+//设置view目录
+//假如 /view -> view
+// view -> view
+//最终为 absPath/view
+func (it *Illusion) ViewPath(viewPath string) *Illusion {
+	//todo insert code here
+	viewPath = strings.TrimPrefix(viewPath, "/")
+	absPath,err := filepath.Abs(".")
+	if err != nil {
+		//it.Error
+		it.Error = err
+		return it
+	}
+	it.viewPath = absPath + string(filepath.Separator) + viewPath + string(filepath.Separator)
+	return it
+}
+
+//分配一个template给Context
+//:)
+func (it *Illusion)allocateTemplate(path string,writer *ContentWriter) *Template{
+	//writer := it.writerPool.Get().(*ContentWriter)
+	//writer.Clear()
+	return newTemplate(path, writer)
+}
+
+//分配一个Writer给Template
+//:)
+func (it *Illusion)allocateWriter() *ContentWriter{
+	return newContentWriter()
 }
 
 func (it *Illusion) Register(bluePrint *Blueprint) *Illusion {
@@ -145,17 +198,6 @@ func (it *Illusion) lazyRegisterAll() *Illusion {
 			it.addRoute(info.HttpMethod, info.RelativePath, info.HandlerChain)
 		}
 	}
-	return it
-}
-
-//设置view目录
-func (it *Illusion) ViewPath(path string) *Illusion {
-	//todo insert code here
-	return it
-}
-
-//设置js,css等静态文件目录
-func (it *Illusion) Resource(path string) *Illusion {
 	return it
 }
 
@@ -192,6 +234,7 @@ func (it *Illusion) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	context.reset()
 	context.Request = req
 	context.Writer = w
+	//context.template = it.templatePool.Get().(*Template)
 
 	it.handleRequest(context)
 
@@ -252,7 +295,7 @@ func redirectTrailingSlash(c *Context) {
 	} else {
 		req.URL.Path = path + "/"
 	}
-	fmt.Print("redirecting request %d: %s --> %s", code, path, req.URL.String())
+	fmt.Printf("redirecting request %d: %s --> %s", code, path, req.URL.String())
 	http.Redirect(c.Writer, req, req.URL.String(), code)
 	//这个WriteHeaderNow是干嘛的 ?
 	//c.writermem.WriteHeaderNow()
@@ -272,11 +315,34 @@ func redirectFixedPath(c *Context, root *node, trailingSlash bool) bool {
 			code = 307
 		}
 		req.URL.Path = string(fixedPath)
-		fmt.Print("redirecting request %d: %s --> %s", code, path, req.URL.String())
+		fmt.Printf("redirecting request %d: %s --> %s", code, path, req.URL.String())
 		http.Redirect(c.Writer, req, req.URL.String(), code)
 		//这个函数到底是干嘛的 ????
 		//c.writermem.WriteHeaderNow()
 		return true
 	}
 	return false
+}
+
+//设置js,css等静态文件目录
+//这个也是可以很叼的哦
+//:)
+func (it *Illusion) Resource(dir string) *Illusion {
+	return it.static(dir)
+}
+
+func (it *Illusion)static(dir string) *Illusion{
+	fs := http.Dir(dir)
+	return it.staticFS(dir, fs)
+}
+
+//装逼到此结束
+func (it *Illusion)staticFS(relativePath string, fs http.FileSystem) *Illusion{
+	if strings.Contains(relativePath, ":") || strings.Contains(relativePath, "*"){
+		panic("我还能说什么呢")
+	}
+	FSBluePrint := BluePrint(relativePath, "resource")
+	FSBluePrint.ServeStatic(relativePath, fs)
+	it.Register(FSBluePrint)
+	return it
 }

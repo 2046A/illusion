@@ -9,6 +9,8 @@ import (
 	"net"
 	"strings"
 	"time"
+	//"path/filepath"
+	"encoding/json"
 )
 
 //这个好像没什么用
@@ -39,10 +41,14 @@ type Context struct {
 
 	//是否需要终止
 	aborted  bool
+
+	//模板
+	//就是这么随意
+	template IllusionTemplate
 }
 
 //初始化一个Context
-func newContext() *Context {
+func newContext(template *Template) *Context {
 	return &Context{
 		Request:  nil,
 		Writer:   nil,
@@ -51,6 +57,7 @@ func newContext() *Context {
 		Keys:     make(map[string]interface{}),
 		Error:    nil,
 		aborted: false,
+		template: template,
 	}
 }
 
@@ -63,6 +70,7 @@ func (it *Context) reset() {
 	it.Keys = make(map[string]interface{})
 	it.Error = nil
 	it.aborted = false
+	it.template.Clear()
 }
 
 //好像还有个问题, 让我想想？？？？？？？
@@ -248,11 +256,28 @@ func (it *Context) Status(code int) {
 
 //这个Write应该只能被调用一次就好
 //否则会报header被重复写的错误
-func (it *Context) Write(status int, value string) {
+func (it *Context) Echo(value interface{}) {
 	//这里出现了二次写头部的问题?????
-	it.Status(status)
-	it.Writer.Write([]byte(value))
+	it.Status(http.StatusOK)
+	content, err := json.Marshal(value)
+	if err != nil {
+		it.Error = err
+		return
+	}
+	it.Writer.Write(content)
 }
+
+//添加echo和view两个方法就好了
+func (it *Context)View(path string,value interface{}){
+	content := it.template.Content(path, value)
+	it.Error = it.template.Error()
+	if it.Error != nil {
+		return
+	}
+	it.Writer.WriteHeader(http.StatusOK)
+	it.Writer.Write(content)
+}
+
 
 //其他的一些再说，反正我也不懂
 

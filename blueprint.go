@@ -12,6 +12,11 @@ import (
 	"errors"
 	"regexp"
 	//"path/filepath"
+	"net/http"
+//	"path"
+//	"fmt"
+//	"fmt"
+//	"path"
 )
 
 const (
@@ -247,6 +252,7 @@ func (it *Blueprint) Post(relativePath string, handler HandlerFunc) *Blueprint {
 }
 
 func (it *Blueprint) Get(relativePath string, handler HandlerFunc) *Blueprint {
+	//fmt.Println("blueprint name:" + it.Name)
 	return it.handle("GET", relativePath, handler)
 }
 
@@ -285,4 +291,14 @@ func (it *Blueprint) Any(relativePath string, handler HandlerFunc) *Blueprint {
 	it.handle("CONNECT", relativePath, handler)
 	it.handle("TRACE", relativePath, handler)
 	return it
+}
+
+func (it *Blueprint)ServeStatic(relativePath string, fs http.FileSystem){
+	fileServer := http.StripPrefix("/" + relativePath, http.FileServer(fs))
+	fileHandler := func(c *Context){
+		fileServer.ServeHTTP(c.Writer, c.Request)
+	}
+	//我只是看了httpRouter一眼，从/-> /*filepath, 然后就好了，我靠!!!!
+	it.Get("/*filepath", fileHandler)
+	it.Head("/*filepath", fileHandler)
 }
