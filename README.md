@@ -6,10 +6,14 @@ micro web framework for Go, for learning Go
 + blueprint主意来自flask,用以取代gin的Group结构,这样不同的路由就可以分散到不同的文件中组织
 + 别告诉我gin也可以，我可是看了源码的
 
+#### DONE
++ 模板引擎
++ 静态资源加载
+
 #### TODO
-+ 很多 
-+ 特别多
-+ 你懂的
++ 错误处理 
++ 日志处理
++ 测试
 
 #### example
 user.go
@@ -70,7 +74,7 @@ func main(){
 	//}()
 }
 ```
-编译运行即可
+编译运行即可,更多例子见example文件夹
 
 ### LICENSE
 MIT 

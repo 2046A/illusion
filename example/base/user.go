@@ -7,7 +7,7 @@ import (
 
 //专门用于abort
 func middleware(c *illusion.Context) {
-	c.Write(200, "你说什么")
+	c.Echo("你说什么")
 	//c.Abort()
 	//c.Append("welcome", "welcome to use illusion framework")
 }
@@ -15,9 +15,9 @@ func middleware(c *illusion.Context) {
 func nameEcho(c *illusion.Context) {
 	name := c.Param("name")
 	if welcome,ok := c.Retrieve("welcome");ok {
-		c.Write(200, "your name:" + name + "\t and " + welcome.(string))
+		c.Echo("your name:" + name + "\t and " + welcome.(string))
 	} else {
-		c.Write(200, "your name and no welcome")
+		c.Echo("your name and no welcome")
 	}
 
 }
