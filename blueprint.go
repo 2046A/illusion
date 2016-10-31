@@ -17,7 +17,7 @@ import (
 	//	"fmt"
 	//	"fmt"
 	//	"path"
-	"sync"
+	///"sync"
 )
 
 const (
@@ -308,12 +308,12 @@ func (it *Blueprint) ServeStatic(relativePath string, fs http.FileSystem) {
 
 //专门用以服务404和405错误
 //其他的错误再添加
-var _errorBlueprint *Blueprint
-var _once sync.Once
+//var _errorBlueprint *Blueprint
+//var _once sync.Once
 
-func errorBlueprint()*Blueprint{
-	_once.Do(func(){
-		_errorBlueprint = BluePrint("/error", "error blueprint")
-	})
-	return _errorBlueprint
-}
+//func errorBlueprint()*Blueprint{
+	//_once.Do(func(){
+//		_errorBlueprint = BluePrint("/error", "error blueprint")
+	//})
+	//return _errorBlueprint
+//}

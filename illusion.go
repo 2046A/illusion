@@ -196,7 +196,6 @@ func (it *Illusion) setLogger(path string) *Illusion {
 // view -> view
 //最终为 absPath/view
 func (it *Illusion) ViewPath(viewPath string) *Illusion {
-	//todo insert code here
 	viewPath = strings.TrimPrefix(viewPath, "/")
 	absPath, err := filepath.Abs(".")
 	if err != nil {

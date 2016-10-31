@@ -14,7 +14,7 @@ import (
 )
 
 //这个好像没什么用
-const abortIndex int8 = 10
+//const abortIndex int8 = 10
 const MaxParamSize = 20 //最大url参数个数，是指/user/:id中id这样的个数
 //const
 
