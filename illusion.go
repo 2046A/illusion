@@ -3,9 +3,9 @@ package illusion
 import (
 	"fmt"
 	"net/http"
-	"sync"
 	"path/filepath"
 	"strings"
+	"sync"
 	//"fs"
 )
 
@@ -44,25 +44,31 @@ type Illusion struct {
 	//render Render
 
 	//错误信息
-	Error error
+	Error                 error
 
 	//最终查找数据存放地
-	methodTree MethodTree
+	methodTree            MethodTree
 
 	//BluePrint存放地，调用register时blueprint会被临时存放在这里
 	//在最终运行前，这个应该被垃圾回收
 	//怎样主动回收 ?
-	bluePrintTree BluePrintTree
+	bluePrintTree         BluePrintTree
 
 	//Context临时存放地点，随时可以被回收的地点
 	//不安全，但能用
-	pool sync.Pool
+	pool                  sync.Pool
 
 	//每个Context都会附着一个template，用以渲染模板文件
 	//不安全，但能用:))
-	templatePool sync.Pool
+	templatePool          sync.Pool
 	//writerPool sync.Pool //获取渲染后文件内容
-	viewPath     string //模板文件基础路径
+	viewPath              string //模板文件基础路径
+
+	//405错误
+	NoMethodHandlerChain  HandlerChain
+
+	//404错误
+	NoFoundHandlerChain   HandlerChain
 
 	//再持有一个logger对象
 	//logger  *Logger
@@ -126,27 +132,31 @@ func globalIllusion() *Illusion {
 //返回一个新的Illusion实例
 //鉴于难以抉择，还是把illusion和blueprint的实例化分开为好
 func App() (illusion *Illusion) {
-	baseViewPath,_ := filepath.Abs(".")// + filepath.Separator + "view" //基础路径
+	baseViewPath, _ := filepath.Abs(".")                // + filepath.Separator + "view" //基础路径
 	baseViewPath += string(filepath.Separator) + "view" //基础路径
 	//loggerPath := string(filepath.Separator) + "log"  //基础路径
 	illusion = &Illusion{
 		//render:                 nil,
 		methodTree:             make(MethodTree),
 		bluePrintTree:          make(BluePrintTree, 0, 100), //最大BluePrint的个数，默认100个
-		viewPath: baseViewPath, //基础路径
+		viewPath:               baseViewPath,                //基础路径
 		RedirectTrailingSlash:  true,
 		RedirectFixedPath:      false,
-		HandleMethodNotAllowed: false, //并没有使用的一个特性
+		HandleMethodNotAllowed: true, //并没有使用的一个特性 -> 现在我尝试使用一下
 		ForwardedByClientIP:    true,
+		NoMethodHandlerChain: make(HandlerChain,0, 10),
+		NoFoundHandlerChain: make(HandlerChain,0, 10),
 		//loggerPath: loggerPath,
 		//logger: nil,
 	}
 	illusion.pool.New = func() interface{} {
 		return illusion.allocateContext()
 	}
-	illusion.templatePool.New = func()interface{}{
+	illusion.templatePool.New = func() interface{} {
 		return illusion.allocateTemplate(illusion.viewPath, illusion.allocateWriter())
 	}
+	illusion.NoFoundHandlerChain = append(illusion.NoFoundHandlerChain, urlNotFoundHandler)
+	illusion.NoMethodHandlerChain = append(illusion.NoMethodHandlerChain, methodNotAllowedHandler)
 	//illusion.writerPool.New = func()interface{} {
 	//	return illusion.allocateWriter()
 	//}
@@ -162,23 +172,23 @@ func (it *Illusion) allocateContext() *Context {
 }
 
 //设置Logger目录
-func (it *Illusion)LogPath(logPath string)*Illusion{
+func (it *Illusion) LogPath(logPath string) *Illusion {
 	//设置log路径,初始化logger
 	it.setLogger(logPath)
-//	it.instanceLogger()
+	//	it.instanceLogger()
 	return it
 }
 
 //包装setLogPath函数
-func (it *Illusion)setLogger(path string)*Illusion{
+func (it *Illusion) setLogger(path string) *Illusion {
 	setLogger(path)
 	return it
 }
 
 //包装instanceLogger函数
 //func (it *Illusion)instanceLogger()*Illusion{
-	//loggerInstance()
-	//return it
+//loggerInstance()
+//return it
 //}
 
 //设置view目录
@@ -188,7 +198,7 @@ func (it *Illusion)setLogger(path string)*Illusion{
 func (it *Illusion) ViewPath(viewPath string) *Illusion {
 	//todo insert code here
 	viewPath = strings.TrimPrefix(viewPath, "/")
-	absPath,err := filepath.Abs(".")
+	absPath, err := filepath.Abs(".")
 	if err != nil {
 		//it.Error
 		it.Error = err
@@ -200,7 +210,7 @@ func (it *Illusion) ViewPath(viewPath string) *Illusion {
 
 //分配一个template给Context
 //:)
-func (it *Illusion)allocateTemplate(path string,writer *ContentWriter) *Template{
+func (it *Illusion) allocateTemplate(path string, writer *ContentWriter) *Template {
 	//writer := it.writerPool.Get().(*ContentWriter)
 	//writer.Clear()
 	return newTemplate(path, writer)
@@ -208,7 +218,7 @@ func (it *Illusion)allocateTemplate(path string,writer *ContentWriter) *Template
 
 //分配一个Writer给Template
 //:)
-func (it *Illusion)allocateWriter() *ContentWriter{
+func (it *Illusion) allocateWriter() *ContentWriter {
 	return newContentWriter()
 }
 
@@ -263,15 +273,16 @@ func (it *Illusion) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	context.Writer = w
 	//context.template = it.templatePool.Get().(*Template)
 
-	loggerInstance().Log("start to serve:" + req.URL.Path)
+	//loggerInstance().Log("start to serve:" + req.URL.Path)
 	//it.logger.Log("start to serve:" + req.URL.Path)
 
 	it.handleRequest(context)
 
 	//捕捉这个错误
 	if context.Error != nil {
-		loggerInstance().Log(context.Error.Error())
-		//it.logger.Log(context.Error.Error())
+	//loggerInstance().Log(context.Error.Error())
+		fmt.Println(context.Error.Error())
+	//it.logger.Log(context.Error.Error())
 	}
 
 	it.pool.Put(context)
@@ -282,16 +293,28 @@ func (it *Illusion) handleRequest(context *Context) {
 	httpMethod := context.Request.Method
 	path := context.Request.URL.Path
 
+	//fmt.Println("start to handle " + httpMethod + "\t " + path)
+
 	//找到http方法下面挂着的根
-	root := it.methodTree[httpMethod]
-	handlers, params, tsr := root.getValue(path)
-	if handlers != nil {
+	root,ok := it.methodTree[httpMethod]
+	//有什么好的解决方法，这太难看了
+	var handlers HandlerChain
+	var params Params
+	var tsr bool
+	if ok {
+		handlers, params, tsr = root.getValue(path)
+	} else {
+		handlers, params, tsr = nil, nil, false
+	}
+	//handlers, params, tsr := root.getValue(path)
+	if handlers != nil{
+		//fmt.Println("找到了")
 		context.handlers = handlers
 		context.Params = params
 		context.Next()
 		//WriteHeaderNow是什么意思啊?
 		return
-	} else if httpMethod != "CONNECT" && path != "/" {
+	} else if httpMethod != "CONNECT" && path != "/"{
 		if tsr && it.RedirectTrailingSlash {
 			redirectTrailingSlash(context)
 			return
@@ -300,6 +323,25 @@ func (it *Illusion) handleRequest(context *Context) {
 			return
 		}
 	}
+
+	//到这说明没找到相应的handler
+	if it.HandleMethodNotAllowed {
+		for _,tree := range it.methodTree {
+			if handler, _, _ := tree.getValue(path); handler != nil {
+				//这是405问题
+				//fmt.Println("处理405问题")
+				context.handlers = it.NoMethodHandlerChain
+				context.Next()
+				return
+			}
+		}
+	}
+	//到这那就是404错误了
+	//it.serveError(context, 404)
+	//fmt.Println("处理404错误")
+	context.handlers = it.NoFoundHandlerChain
+	context.Next()
+	return
 
 	// TODO: unit test
 	// TODO: 这个够不着, 手短
@@ -316,6 +358,18 @@ func (it *Illusion) handleRequest(context *Context) {
 	}
 	context.handlers = it.allNoRoute
 	serveError(context, 404, default404Body)*/
+}
+
+//两个处理错误的handler
+//method not allowed 错误
+func methodNotAllowedHandler(c *Context){
+	//c.Status(405)
+	c.String(405, "405 Not Allowed")
+}
+//404 not found 错误
+func urlNotFoundHandler(c *Context){
+	//c.Status(404)
+	c.String(404, "404 not found")
 }
 
 func redirectTrailingSlash(c *Context) {
@@ -353,8 +407,7 @@ func redirectFixedPath(c *Context, root *node, trailingSlash bool) bool {
 		req.URL.Path = string(fixedPath)
 		fmt.Printf("redirecting request %d: %s --> %s", code, path, req.URL.String())
 		http.Redirect(c.Writer, req, req.URL.String(), code)
-		//这个函数到底是干嘛的 ????
-		//c.writermem.WriteHeaderNow()
+		//这个
 		return true
 	}
 	return false
@@ -367,14 +420,14 @@ func (it *Illusion) Resource(dir string) *Illusion {
 	return it.static(dir)
 }
 
-func (it *Illusion)static(dir string) *Illusion{
+func (it *Illusion) static(dir string) *Illusion {
 	fs := http.Dir(dir)
 	return it.staticFS(dir, fs)
 }
 
-//装逼到此结束
-func (it *Illusion)staticFS(relativePath string, fs http.FileSystem) *Illusion{
-	if strings.Contains(relativePath, ":") || strings.Contains(relativePath, "*"){
+//把服务文件系统的blueprint单独拿出来吗 ?
+func (it *Illusion) staticFS(relativePath string, fs http.FileSystem) *Illusion {
+	if strings.Contains(relativePath, ":") || strings.Contains(relativePath, "*") {
 		panic("我还能说什么呢")
 	}
 	FSBluePrint := BluePrint(relativePath, "resource")

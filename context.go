@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 	//"path/filepath"
-	"encoding/json"
+//	"encoding/json"
 )
 
 //这个好像没什么用
@@ -22,25 +22,25 @@ const MaxParamSize = 20 //最大url参数个数，是指/user/:id中id这样的�
 //因为我还闹不大明白很多东西, :)
 type Context struct {
 	//请求对象
-	Request  *http.Request
+	Request *http.Request
 
 	//response对象
-	Writer   http.ResponseWriter
+	Writer http.ResponseWriter
 
 	//额外参数
-	Params   Params
+	Params Params
 
 	//调用链
 	handlers HandlerChain
 
 	//额外附着在Context上的数据
-	Keys     map[string]interface{}
+	Keys map[string]interface{}
 
 	//错误信息
-	Error    error
+	Error error
 
 	//是否需要终止
-	aborted  bool
+	aborted bool
 
 	//模板
 	//就是这么随意
@@ -56,7 +56,7 @@ func newContext(template *Template) *Context {
 		handlers: make(HandlerChain, 0, MaxHandlerNumber),
 		Keys:     make(map[string]interface{}),
 		Error:    nil,
-		aborted: false,
+		aborted:  false,
 		template: template,
 	}
 }
@@ -253,22 +253,24 @@ func (it *Context) Header(key, value string) {
 func (it *Context) Status(code int) {
 	it.Writer.WriteHeader(code)
 }
+//
+//func (it *Context)NotFound(value interface{})
 
 //这个Write应该只能被调用一次就好
 //否则会报header被重复写的错误
-func (it *Context) Echo(value interface{}) {
+func (it *Context) String(status int,value string) {
 	//这里出现了二次写头部的问题?????
-	it.Status(http.StatusOK)
-	content, err := json.Marshal(value)
-	if err != nil {
-		it.Error = err
-		return
-	}
-	it.Writer.Write(content)
+	it.Status(status)
+	//content, err := json.Marshal(value)
+	//if err != nil {
+//		it.Error = err
+		//return
+	//}
+	it.Writer.Write([]byte(value))
 }
 
 //添加echo和view两个方法就好了
-func (it *Context)View(path string,value interface{}){
+func (it *Context) View(path string, value interface{}) {
 	content := it.template.Content(path, value)
 	it.Error = it.template.Error()
 	if it.Error != nil {
@@ -277,7 +279,6 @@ func (it *Context)View(path string,value interface{}){
 	it.Writer.WriteHeader(http.StatusOK)
 	it.Writer.Write(content)
 }
-
 
 //其他的一些再说，反正我也不懂
 

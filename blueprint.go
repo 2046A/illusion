@@ -13,17 +13,18 @@ import (
 	"regexp"
 	//"path/filepath"
 	"net/http"
-//	"path"
-//	"fmt"
-//	"fmt"
-//	"path"
+	//	"path"
+	//	"fmt"
+	//	"fmt"
+	//	"path"
+	"sync"
 )
 
 const (
 	//这些只是软性的, 切片的长度还是没法软性的控制
 	//意义不大
-	MaxMiddlewareNumber = 5 //blueprint最大中间件个数, Before5个, After5个
-	MaxHandlerNumber = 30 // blueprint所能注册的最多handler个数
+	MaxMiddlewareNumber      = 5  //blueprint最大中间件个数, Before5个, After5个
+	MaxHandlerNumber         = 30 // blueprint所能注册的最多handler个数
 	CompleteHandlerChainSize = 11 //一个调用链中HandlerFunc的最大个数, 5 + 5 + 1
 )
 
@@ -32,7 +33,7 @@ const (
 //illusion把切片的所有信息注册到路由中
 type HandlerInfo struct {
 	//GET, POST, DELETE等
-	HttpMethod   string
+	HttpMethod string
 
 	//完整路径,名字很骗人
 	RelativePath string
@@ -115,11 +116,11 @@ type BluePrinter interface {
 //在Blueprint被注册到Illusion前，会持有所有的相关信息
 type Blueprint struct {
 	//对应此Blueprint的基础路径
-	BasePath      string
+	BasePath string
 
 	//名称
 	//名称应该唯一
-	Name          string
+	Name string
 
 	//处理链, 可以一次性存储，
 	//毕竟，你不会放太多的函数在调用链中, right? :)
@@ -127,13 +128,13 @@ type Blueprint struct {
 	//Handlers HandlerChain
 
 	//handler之前的处理链
-	BeforeChain   HandlerChain
+	BeforeChain HandlerChain
 
 	//handler之后的处理链
-	AfterChain    HandlerChain
+	AfterChain HandlerChain
 
 	//错误信息
-	Error         error
+	Error error
 
 	//必须要持有的核心路由
 	//不显示持有也可以，但不明显，最好持有
@@ -166,7 +167,7 @@ func BluePrint(path, name string) *Blueprint {
 		Name:          name,
 		BeforeChain:   make(HandlerChain, 0, MaxMiddlewareNumber), //最大的beforeChain个数
 		AfterChain:    make(HandlerChain, 0, MaxMiddlewareNumber), //最大的AfterChain个数
-		HttpRouterMap: make(httpRouterMap),      //这个反倒好点
+		HttpRouterMap: make(httpRouterMap),                        //这个反倒好点
 		Error:         nil,
 		//illusion:    globalIllusion(),
 	}
@@ -178,8 +179,8 @@ func (it *Blueprint) fullChain() HandlerInfoChain {
 	if it.Error != nil {
 		return nil
 	}
-	chain := make(HandlerInfoChain, 0, CompleteHandlerChainSize)    //还得const来调整
-	handlerChain := make(HandlerChain, 0, MaxHandlerNumber) //这个...
+	chain := make(HandlerInfoChain, 0, CompleteHandlerChainSize) //还得const来调整
+	handlerChain := make(HandlerChain, 0, MaxHandlerNumber)      //这个...
 	for httpMethod, urlMap := range it.HttpRouterMap {
 		//urlMap为url -> handler
 		for url, handler := range urlMap {
@@ -293,12 +294,26 @@ func (it *Blueprint) Any(relativePath string, handler HandlerFunc) *Blueprint {
 	return it
 }
 
-func (it *Blueprint)ServeStatic(relativePath string, fs http.FileSystem){
-	fileServer := http.StripPrefix("/" + relativePath, http.FileServer(fs))
-	fileHandler := func(c *Context){
+//服务静态文件
+//服务静态文件的blueprint也可以提取出来
+func (it *Blueprint) ServeStatic(relativePath string, fs http.FileSystem) {
+	fileServer := http.StripPrefix("/"+relativePath, http.FileServer(fs))
+	fileHandler := func(c *Context) {
 		fileServer.ServeHTTP(c.Writer, c.Request)
 	}
 	//我只是看了httpRouter一眼，从/-> /*filepath, 然后就好了，我靠!!!!
 	it.Get("/*filepath", fileHandler)
 	it.Head("/*filepath", fileHandler)
+}
+
+//专门用以服务404和405错误
+//其他的错误再添加
+var _errorBlueprint *Blueprint
+var _once sync.Once
+
+func errorBlueprint()*Blueprint{
+	_once.Do(func(){
+		_errorBlueprint = BluePrint("/error", "error blueprint")
+	})
+	return _errorBlueprint
 }
