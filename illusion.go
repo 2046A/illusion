@@ -296,31 +296,23 @@ func (it *Illusion) handleRequest(context *Context) {
 	//fmt.Println("start to handle " + httpMethod + "\t " + path)
 
 	//找到http方法下面挂着的根
-	root,ok := it.methodTree[httpMethod]
-	//有什么好的解决方法，这太难看了
-	var handlers HandlerChain
-	var params Params
-	var tsr bool
-	if ok {
-		handlers, params, tsr = root.getValue(path)
-	} else {
-		handlers, params, tsr = nil, nil, false
-	}
-	//handlers, params, tsr := root.getValue(path)
-	if handlers != nil{
-		//fmt.Println("找到了")
-		context.handlers = handlers
-		context.Params = params
-		context.Next()
-		//WriteHeaderNow是什么意思啊?
-		return
-	} else if httpMethod != "CONNECT" && path != "/"{
-		if tsr && it.RedirectTrailingSlash {
-			redirectTrailingSlash(context)
+	//如果确实从map中获取到说明有这个http方法对应的url->handler
+	//否则就是404或者405错误,后面会处理
+	if root, ok := it.methodTree[httpMethod]; ok {
+		handlers, params, tsr := root.getValue(path)
+		if handlers != nil{
+			context.handlers = handlers
+			context.Params = params
+			context.Next()
 			return
-		}
-		if it.RedirectFixedPath && redirectFixedPath(context, root, it.RedirectFixedPath) {
-			return
+		} else if httpMethod != "CONNECT" && path != "/"{
+			if tsr && it.RedirectTrailingSlash {
+				redirectTrailingSlash(context)
+				return
+			}
+			if it.RedirectFixedPath && redirectFixedPath(context, root, it.RedirectFixedPath) {
+				return
+			}
 		}
 	}
 
@@ -329,7 +321,6 @@ func (it *Illusion) handleRequest(context *Context) {
 		for _,tree := range it.methodTree {
 			if handler, _, _ := tree.getValue(path); handler != nil {
 				//这是405问题
-				//fmt.Println("处理405问题")
 				context.handlers = it.NoMethodHandlerChain
 				context.Next()
 				return
@@ -337,27 +328,9 @@ func (it *Illusion) handleRequest(context *Context) {
 		}
 	}
 	//到这那就是404错误了
-	//it.serveError(context, 404)
-	//fmt.Println("处理404错误")
 	context.handlers = it.NoFoundHandlerChain
 	context.Next()
 	return
-
-	// TODO: unit test
-	// TODO: 这个够不着, 手短
-	/*if it.HandleMethodNotAllowed {
-		for _, tree := range it.trees {
-			if tree.method != httpMethod {
-				if handlers, _, _ := tree.root.getValue(path, nil); handlers != nil {
-					context.handlers = it.allNoMethod
-					serveError(context, 405, default405Body)
-					return
-				}
-			}
-		}
-	}
-	context.handlers = it.allNoRoute
-	serveError(context, 404, default404Body)*/
 }
 
 //两个处理错误的handler
