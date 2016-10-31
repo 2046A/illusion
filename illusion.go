@@ -341,7 +341,9 @@ func methodNotAllowedHandler(c *Context){
 //404 not found 错误
 func urlNotFoundHandler(c *Context){
 	//c.Status(404)
-	c.String(404, "404 not found")
+	//c.String(404, "404 not found")
+
+	c.View("404.html", map[string]string{"Title": "404 not found"})
 }
 
 func redirectTrailingSlash(c *Context) {
