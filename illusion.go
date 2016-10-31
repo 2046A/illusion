@@ -64,6 +64,10 @@ type Illusion struct {
 	//writerPool sync.Pool //获取渲染后文件内容
 	viewPath     string //模板文件基础路径
 
+	//再持有一个logger对象
+	//logger  *Logger
+	//对应的logger基础目录
+	//loggerPath string
 	//下面的待解释...
 
 	// Enables automatic redirection if the current route can't be matched but a
@@ -124,6 +128,7 @@ func globalIllusion() *Illusion {
 func App() (illusion *Illusion) {
 	baseViewPath,_ := filepath.Abs(".")// + filepath.Separator + "view" //基础路径
 	baseViewPath += string(filepath.Separator) + "view" //基础路径
+	//loggerPath := string(filepath.Separator) + "log"  //基础路径
 	illusion = &Illusion{
 		//render:                 nil,
 		methodTree:             make(MethodTree),
@@ -133,6 +138,8 @@ func App() (illusion *Illusion) {
 		RedirectFixedPath:      false,
 		HandleMethodNotAllowed: false, //并没有使用的一个特性
 		ForwardedByClientIP:    true,
+		//loggerPath: loggerPath,
+		//logger: nil,
 	}
 	illusion.pool.New = func() interface{} {
 		return illusion.allocateContext()
@@ -153,6 +160,26 @@ func (it *Illusion) allocateContext() *Context {
 	template := it.templatePool.Get().(*Template)
 	return newContext(template)
 }
+
+//设置Logger目录
+func (it *Illusion)LogPath(logPath string)*Illusion{
+	//设置log路径,初始化logger
+	it.setLogger(logPath)
+//	it.instanceLogger()
+	return it
+}
+
+//包装setLogPath函数
+func (it *Illusion)setLogger(path string)*Illusion{
+	setLogger(path)
+	return it
+}
+
+//包装instanceLogger函数
+//func (it *Illusion)instanceLogger()*Illusion{
+	//loggerInstance()
+	//return it
+//}
 
 //设置view目录
 //假如 /view -> view
@@ -236,7 +263,16 @@ func (it *Illusion) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	context.Writer = w
 	//context.template = it.templatePool.Get().(*Template)
 
+	loggerInstance().Log("start to serve:" + req.URL.Path)
+	//it.logger.Log("start to serve:" + req.URL.Path)
+
 	it.handleRequest(context)
+
+	//捕捉这个错误
+	if context.Error != nil {
+		loggerInstance().Log(context.Error.Error())
+		//it.logger.Log(context.Error.Error())
+	}
 
 	it.pool.Put(context)
 }

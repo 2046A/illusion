@@ -4,6 +4,7 @@ import (
 	//"bytes"
 	"illusion"
 )
+
 type Title struct {
 	Title string
 }
@@ -12,6 +13,7 @@ func main(){
 	app := illusion.App()
 	app.ViewPath("example/template/view")
 	app.Resource("example/static")
+	app.LogPath("example/template/log")
 	index := illusion.BluePrint("/", "index")
 	index.Get("/index", func(c *illusion.Context){
 		c.View("index.html", Title{Title: "我就是这么吊"})
