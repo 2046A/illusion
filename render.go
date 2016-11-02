@@ -24,7 +24,7 @@ type IllusionTemplate interface {
 	//echo(...interface{})
 
 	//获取错误信息
-	Error() error
+	//Error() error
 }
 
 //存储模板引擎之用
@@ -39,7 +39,7 @@ type Template struct {
 	//同时还需要一个专门用以获取模板内容的Writer
 	contentWriter *ContentWriter
 	//错误信息
-	Err error
+	//Err error
 }
 
 //每个Context会附着一个Template
@@ -56,22 +56,14 @@ func (it *Template) Content(file string, value interface{}) (result []byte) {
 	finalPath := it.baseFileLocation + file
 	t, err := template.ParseFiles(finalPath)
 	if err != nil {
-		it.Err = err
-		//fmt.Println("文件:" + finalPath)
-		//result = []byte("")
+		appendError(errorInfo{Error:err, Level:logOnError})
 		return
 	}
-	//fmt.Println("serving file:" + finalPath)
-	//contentWriter := newContentWriter()
-	t.Execute(it.contentWriter, value)
-	//if it.contentWriter.Error != nil {
-	//panic("出错了，未读出所有的内容")
-	//}
-	//if t.contentWriter
+	err = t.Execute(it.contentWriter, value)
+	if err != nil {
+		appendError(errorInfo{Error:err, Level:panicOnError})
+	}
 	result = it.contentWriter.Read()
-	//fmt.Println("*****************************************************")
-	//fmt.Println(string(result))
-	//fmt.Print("*****************************************************")
 	return
 }
 
@@ -81,14 +73,9 @@ func (it *Template) Clear() {
 	it.contentWriter.Clear()
 }
 
-//返回相应的错误信息
-func (it *Template) Error() error {
-	return it.contentWriter.Error
-}
-
 type ContentWriter struct {
 	buf   bytes.Buffer
-	Error error
+	//Error error
 }
 
 func newContentWriter() *ContentWriter {
@@ -98,7 +85,8 @@ func newContentWriter() *ContentWriter {
 func (writer *ContentWriter) Write(p []byte) (n int, err error) {
 	n, err = writer.buf.Write(p)
 	if n < len(p) {
-		writer.Error = errors.New("没写全")
+		appendError(errorInfo{Error:errors.New("未完全获取模板内容"), Level: logOnError})
+		//writer.Error = errors.New("没写全")
 	}
 	return n, err
 }
@@ -106,9 +94,9 @@ func (writer *ContentWriter) Write(p []byte) (n int, err error) {
 //获取写入的内容
 //直接返回字符数组就好
 func (writer *ContentWriter) Read() []byte {
-	if writer.Error != nil {
-		return nil
-	}
+	//if writer.Error != nil {
+	//	return nil
+	//}
 	return writer.buf.Bytes()
 }
 

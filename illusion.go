@@ -173,15 +173,8 @@ func (it *Illusion) allocateContext() *Context {
 
 //设置Logger目录
 func (it *Illusion) LogPath(logPath string) *Illusion {
-	//设置log路径,初始化logger
-	it.setLogger(logPath)
-	//	it.instanceLogger()
-	return it
-}
-
-//包装setLogPath函数
-func (it *Illusion) setLogger(path string) *Illusion {
-	setLogger(path)
+	//设置log路径,初始化的写入媒介
+	setLogger(logPath)
 	return it
 }
 
@@ -251,6 +244,8 @@ func (it *Illusion) addRoute(httpMethod, uriPath string, handlerChain HandlerCha
 func (it *Illusion) Run(address string) (err error) {
 	//address := resolveAddress
 	fmt.Println("Listening and serving HTTP on ", address)
+	fmt.Println("********* Start To Handle ERROR ***********")
+	go handleError()
 
 	//准备好所有的处理handler
 	it.lazyRegisterAll()
@@ -278,11 +273,11 @@ func (it *Illusion) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	it.handleRequest(context)
 
 	//捕捉这个错误
-	if context.Error != nil {
+	//if context.Error != nil {
 	//loggerInstance().Log(context.Error.Error())
-		fmt.Println(context.Error.Error())
+	//	fmt.Println(context.Error.Error())
 	//it.logger.Log(context.Error.Error())
-	}
+	//}
 
 	it.pool.Put(context)
 }

@@ -134,7 +134,9 @@ type Blueprint struct {
 	AfterChain HandlerChain
 
 	//错误信息
-	Error error
+	//存储数组吧
+	//这个已经没有必要了，有了独立的处理错误的场所了
+	//Error []error
 
 	//必须要持有的核心路由
 	//不显示持有也可以，但不明显，最好持有
@@ -168,7 +170,7 @@ func BluePrint(path, name string) *Blueprint {
 		BeforeChain:   make(HandlerChain, 0, MaxMiddlewareNumber), //最大的beforeChain个数
 		AfterChain:    make(HandlerChain, 0, MaxMiddlewareNumber), //最大的AfterChain个数
 		HttpRouterMap: make(httpRouterMap),                        //这个反倒好点
-		Error:         nil,
+		//Error:         nil,
 		//illusion:    globalIllusion(),
 	}
 }
@@ -176,9 +178,9 @@ func BluePrint(path, name string) *Blueprint {
 //结合beforeChain + Handler + afterChain形成一个调用链
 // methodHashMap形成整个链
 func (it *Blueprint) fullChain() HandlerInfoChain {
-	if it.Error != nil {
-		return nil
-	}
+	//if it.Error != nil {
+	//	return nil
+	//}
 	chain := make(HandlerInfoChain, 0, CompleteHandlerChainSize) //还得const来调整
 	handlerChain := make(HandlerChain, 0, MaxHandlerNumber)      //这个...
 	for httpMethod, urlMap := range it.HttpRouterMap {
@@ -196,26 +198,26 @@ func (it *Blueprint) fullChain() HandlerInfoChain {
 
 //结合blueprint.BasePath + relativePath形成绝对Url
 func (it *Blueprint) truePath(relativePath string) string {
-	if it.Error != nil {
-		return ""
-	}
+	//if it.Error != nil {
+	//	return ""
+	//}
 	return CleanPath(it.BasePath + "/" + relativePath)
 }
 
 //我很怀疑append这个操作..
 func (it *Blueprint) Before(handler HandlerFunc) *Blueprint {
-	if it.Error != nil {
-		return nil
-	}
+	//if it.Error != nil {
+	//	return nil
+	//}
 	it.BeforeChain = append(it.BeforeChain, handler)
 	return it
 }
 
 //同上
 func (it *Blueprint) After(handler HandlerFunc) *Blueprint {
-	if it.Error != nil {
-		return nil
-	}
+	//if it.Error != nil {
+	//	return nil
+	//}
 	it.AfterChain = append(it.AfterChain, handler)
 	return it
 }
@@ -223,7 +225,9 @@ func (it *Blueprint) After(handler HandlerFunc) *Blueprint {
 func (it *Blueprint) handle(httpMethod, relativePath string, handler HandlerFunc) *Blueprint {
 	finalPath := it.truePath(relativePath)
 	if finalPath == "" {
-		it.Error = errors.New("获取绝对路径时出错")
+		//it.Error = errors.New("获取绝对路径时出错")
+		appendError(errorInfo{Error: errors.New("获取绝对路径时出错"), Level: panicOnError})
+		//errHandlerInstance().AppendError(it.Error)
 		return it
 	}
 	//暂时存储在map中
@@ -238,12 +242,14 @@ func (it *Blueprint) handle(httpMethod, relativePath string, handler HandlerFunc
 }
 
 func (it *Blueprint) Handle(httpMethod, relativePath string, handler HandlerFunc) *Blueprint {
-	if it.Error != nil {
-		return nil
-	}
+	//if it.Error != nil {
+	//	return nil
+	//}
 	if matches, err := regexp.MatchString("^[A-Z]+$", httpMethod); !matches || err != nil {
-		it.Error = err
-		panic("http method " + httpMethod + " is not valid")
+		//it.Error = err
+		//errHandlerInstance().AppendError(err)
+		appendError(errorInfo{Error: errors.New("http method " + httpMethod + " is not valid"), Level:panicOnError})
+		//panic("http method " + httpMethod + " is not valid")
 	}
 	return it.handle(httpMethod, relativePath, handler)
 }

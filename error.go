@@ -5,69 +5,47 @@ package illusion
 
 import (
 	"fmt"
-	"sync"
+	//"sync"
+	"log"
 )
 
-type errorHandler struct {
-	//储存错误
-	errors []error
+type ErrorEnum uint8
+const BUFFER_SIZE = 100
 
-	//获取日志句柄
-	logger *Logger
+const (
+	panicOnError ErrorEnum = iota
+	printOnError
+	logOnError
+	allOnError
+)
+
+type errorInfo struct {
+	Error error
+	Level ErrorEnum
 }
 
-var _errorHandler *errorHandler
-var once sync.Once
+var errorChannel chan errorInfo
 
 //内部使用，外部不可用
 //还是在内部使用
-func errHandlerInstance() *errorHandler {
-	once.Do(func() {
-		_errorHandler = &errorHandler{
-			errors: make([]error, 0, 100),
-			logger: loggerInstance(),
-		}
-	})
-	return _errorHandler
-}
-
-//附加错误到数组中
-func (it *errorHandler) AppendError(err ...error) *errorHandler {
-	it.errors = append(it.errors, err...)
-	return it
-}
-
-// 对错误的处理
-// 根据isPanic来判断是否进行终止程序的处理
-func (it *errorHandler) handle(needPanic bool, needPrint bool, needLog bool) *errorHandler {
-	for _, err := range it.errors {
-		if needPrint {
-			fmt.Println(err.Error())
-		}
-		if needLog {
-			it.logger.Log(err.Error())
+func handleError() {
+	errorChannel = make(chan errorInfo, BUFFER_SIZE)
+	//handleError(errorChannel)
+	for err := range errorChannel {
+		switch err.Level {
+		case panicOnError:
+			panic(err.Error.Error())
+		case printOnError:
+			fmt.Errorf(err.Error.Error())
+		case logOnError:
+			log.Println(err.Error.Error())
+		case allOnError:
+			fmt.Errorf(err.Error.Error())
+			log.Panicln(err.Error.Error())
 		}
 	}
-	it.errors = it.errors[0:0] //置空
-	if needPanic {
-		panic("程序出现错误，详细信息见log文件")
-	}
-	return it
 }
 
-//打印错误的具体信息
-func (it *errorHandler) Print() *errorHandler {
-	return it.handle(false, true, false)
-}
-
-func (it *errorHandler) Log() *errorHandler {
-	return it.handle(false, false, true)
-}
-
-func (it *errorHandler) PrintAndLog()*errorHandler{
-	return it.handle(false, true, true)
-}
-
-func (it *errorHandler)Fatal(){
-	it.handle(true, true, true)
+func appendError(err errorInfo) {
+	errorChannel <- err
 }

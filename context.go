@@ -37,7 +37,8 @@ type Context struct {
 	Keys map[string]interface{}
 
 	//错误信息
-	Error error
+	//这个也不需要了
+	//Error error
 
 	//是否需要终止
 	aborted bool
@@ -55,7 +56,7 @@ func newContext(template *Template) *Context {
 		Params:   make(Params, 0, MaxParamSize),
 		handlers: make(HandlerChain, 0, MaxHandlerNumber),
 		Keys:     make(map[string]interface{}),
-		Error:    nil,
+		//Error:    nil,
 		aborted:  false,
 		template: template,
 	}
@@ -68,7 +69,7 @@ func (it *Context) reset() {
 	it.Request = nil
 	it.Writer = nil
 	it.Keys = make(map[string]interface{})
-	it.Error = nil
+	//it.Error = nil
 	it.aborted = false
 	it.template.Clear()
 }
@@ -84,7 +85,8 @@ func (it *Context) AbortWithStatus(code int) {
 }
 
 func (it *Context) AbortWithError(code int, err error) {
-	it.Error = err
+	//it.Error = err
+	appendError(errorInfo{Error: err, Level:logOnError})
 	it.AbortWithStatus(code)
 }
 
@@ -272,10 +274,14 @@ func (it *Context) String(status int,value string) {
 //添加echo和view两个方法就好了
 func (it *Context) View(path string, value interface{}) {
 	content := it.template.Content(path, value)
-	it.Error = it.template.Error()
-	if it.Error != nil {
-		return
-	}
+//	err := it.template.Error()
+	//if err {
+	//	appendError(errorInfo{Error: err, Level: allOnError})
+//	}
+	//it.Error = it.template.Error()
+	//if it.Error != nil {
+	//	return
+	//}
 	it.Writer.WriteHeader(http.StatusOK)
 	it.Writer.Write(content)
 }
