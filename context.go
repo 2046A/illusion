@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 	//"path/filepath"
-//	"encoding/json"
+	//	"encoding/json"
 )
 
 //这个好像没什么用
@@ -86,7 +86,7 @@ func (it *Context) AbortWithStatus(code int) {
 
 func (it *Context) AbortWithError(code int, err error) {
 	//it.Error = err
-	appendError(errorInfo{Error: err, Level:logOnError})
+	appendError(errorInfo{Error: err, Level: logOnError})
 	it.AbortWithStatus(code)
 }
 
@@ -255,18 +255,26 @@ func (it *Context) Header(key, value string) {
 func (it *Context) Status(code int) {
 	it.Writer.WriteHeader(code)
 }
-//
-//func (it *Context)NotFound(value interface{})
+
+//重定向
+func (it *Context) Redirect(status int, uri string) {
+	//todo insert code here
+}
+
+//json数据的返回
+func (it *Context) Json(status int, value interface{}) {
+	//todo insert code here
+}
 
 //这个Write应该只能被调用一次就好
 //否则会报header被重复写的错误
-func (it *Context) String(status int,value string) {
+func (it *Context) String(status int, value string) {
 	//这里出现了二次写头部的问题?????
 	it.Status(status)
 	//content, err := json.Marshal(value)
 	//if err != nil {
-//		it.Error = err
-		//return
+	//		it.Error = err
+	//return
 	//}
 	it.Writer.Write([]byte(value))
 }
@@ -274,10 +282,10 @@ func (it *Context) String(status int,value string) {
 //添加echo和view两个方法就好了
 func (it *Context) View(path string, value interface{}) {
 	content := it.template.Content(path, value)
-//	err := it.template.Error()
+	//	err := it.template.Error()
 	//if err {
 	//	appendError(errorInfo{Error: err, Level: allOnError})
-//	}
+	//	}
 	//it.Error = it.template.Error()
 	//if it.Error != nil {
 	//	return
