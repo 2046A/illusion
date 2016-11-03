@@ -19,6 +19,9 @@ func main() {
 		//c.Status(200)
 		c.View("index.html", Title{Title: "我就是这么吊"})
 	})
+	index.Get("/redirect", func(c *illusion.Context){
+		c.Redirect("/index")
+	})
 	ping := illusion.BluePrint("/ping", "ping")
 	ping.Get("/", func(c *illusion.Context) {
 		//c.Status(200)

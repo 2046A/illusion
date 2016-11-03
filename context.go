@@ -11,6 +11,8 @@ import (
 	"time"
 	//"path/filepath"
 	//	"encoding/json"
+	"encoding/json"
+//	"fmt"
 )
 
 //这个好像没什么用
@@ -257,13 +259,22 @@ func (it *Context) Status(code int) {
 }
 
 //重定向
-func (it *Context) Redirect(status int, uri string) {
+func (it *Context) Redirect(uri string) {
 	//todo insert code here
+	it.Writer.Header().Set("Location", uri)
+	it.Writer.WriteHeader(http.StatusMovedPermanently)
 }
 
 //json数据的返回
 func (it *Context) Json(status int, value interface{}) {
 	//todo insert code here
+	data,err := json.Marshal(value)
+	if err != nil {
+		appendError(errorInfo{Error: err, Level:panicOnError})
+	}
+	//it.Status()
+	it.Writer.WriteHeader(status)
+	it.Writer.Write(data)
 }
 
 //这个Write应该只能被调用一次就好
@@ -271,11 +282,7 @@ func (it *Context) Json(status int, value interface{}) {
 func (it *Context) String(status int, value string) {
 	//这里出现了二次写头部的问题?????
 	it.Status(status)
-	//content, err := json.Marshal(value)
-	//if err != nil {
-	//		it.Error = err
-	//return
-	//}
+
 	it.Writer.Write([]byte(value))
 }
 
