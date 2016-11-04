@@ -287,7 +287,7 @@ func (it *Context) String(status int, value string) {
 }
 
 //添加echo和view两个方法就好了
-func (it *Context) View(path string, value interface{}) {
+func (it *Context) View(path string, value TemplateContext) {
 	content := it.template.Content(path, value)
 	//	err := it.template.Error()
 	//if err {

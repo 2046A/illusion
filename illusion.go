@@ -339,7 +339,7 @@ func urlNotFoundHandler(c *Context){
 	//c.Status(404)
 	//c.String(404, "404 not found")
 
-	c.View("404.html", map[string]string{"Title": "404 not found"})
+	c.View("404.html", TemplateContext{"Title": "404 not found"})
 }
 
 func redirectTrailingSlash(c *Context) {

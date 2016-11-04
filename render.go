@@ -11,17 +11,21 @@ import (
 	"github.com/flosch/pongo2"
 )
 
-type Value pongo2.Context
+//type Value pongo2.Context
+//type Value struct{
+	//pongo2.Context
+//}
+type TemplateContext map[string]interface{}
 
 //好像只要一个就行了
 //所以Context只需要持有这个接口就好了
 type IllusionTemplate interface {
 	//渲染文件
 	//获取文件内容
-	Content(string, interface{}) []byte
+	Content(string, TemplateContext) []byte
 
 	//清理Buffer中原有的内容
-	//Clear()
+	Clear()
 	//这个起个什么名字好呢
 	//这个名字好像很不错
 	//echo(...interface{})
@@ -54,14 +58,14 @@ func newTemplate(basePath string, writer *ContentWriter) *Template {
 
 //渲染这个文件
 //返回最终结果 string
-func (it *Template) Content(file string, value Value) []byte {
+func (it *Template) Content(file string, value TemplateContext) []byte {
 	file = strings.TrimPrefix(file, "/")
 	finalPath := it.baseFileLocation + file
 	tpl,err := pongo2.FromFile(finalPath)
 	if err != nil {
 		appendError(errorInfo{Error:err, Level:panicOnError})
 	}
-	result,err := tpl.Execute(value)
+	result,err := tpl.Execute(pongo2.Context(value))
 	if err != nil {
 		appendError(errorInfo{Error:err, Level:panicOnError})
 	}

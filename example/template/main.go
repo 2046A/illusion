@@ -17,7 +17,7 @@ func main() {
 	index := illusion.BluePrint("/", "index")
 	index.Get("/index", func(c *illusion.Context) {
 		//c.Status(200)
-		c.View("index.html", Title{Title: "我就是这么吊"})
+		c.View("index.html", illusion.TemplateContext{"Title": "我就是这么吊"})
 	})
 	index.Get("/redirect", func(c *illusion.Context){
 		c.Redirect("/index")
