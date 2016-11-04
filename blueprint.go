@@ -182,16 +182,17 @@ func (it *Blueprint) fullChain() HandlerInfoChain {
 	//	return nil
 	//}
 	chain := make(HandlerInfoChain, 0, CompleteHandlerChainSize) //还得const来调整
-	handlerChain := make(HandlerChain, 0, MaxHandlerNumber)      //这个...
+	//handlerChain := make(HandlerChain, 0, MaxHandlerNumber)      //这个...
 	for httpMethod, urlMap := range it.HttpRouterMap {
 		//urlMap为url -> handler
 		for url, handler := range urlMap {
+			handlerChain := make(HandlerChain, 0, MaxHandlerNumber)      //这个...
 			handlerChain = append(handlerChain, it.BeforeChain...)
 			handlerChain = append(handlerChain, handler)
 			handlerChain = append(handlerChain, it.AfterChain...)
 			chain = append(chain, HandlerInfo{HttpMethod: httpMethod, RelativePath: url, HandlerChain: handlerChain})
+			//handlerChain = handlerChain[0:0] //重设一下
 		}
-		handlerChain = handlerChain[0:0] //重设一下
 	}
 	return chain
 }

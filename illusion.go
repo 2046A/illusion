@@ -224,6 +224,7 @@ func (it *Illusion) lazyRegisterAll() *Illusion {
 	for _, bluePrint := range it.bluePrintTree {
 		handlerInfoChain := bluePrint.fullChain()
 		for _, info := range handlerInfoChain {
+//			fmt.Println("append uri:" + info.RelativePath)
 			it.addRoute(info.HttpMethod, info.RelativePath, info.HandlerChain)
 		}
 	}
