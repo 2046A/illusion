@@ -202,6 +202,9 @@ func (it *Blueprint) truePath(relativePath string) string {
 	//if it.Error != nil {
 	//	return ""
 	//}
+	if relativePath == "/" {
+		return it.BasePath
+	}
 	return CleanPath(it.BasePath + "/" + relativePath)
 }
 

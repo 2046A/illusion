@@ -23,6 +23,9 @@ func main() {
 		c.Redirect("/index")
 	})
 	ping := illusion.BluePrint("/ping", "ping")
+	ping.Get("/", func(c *illusion.Context){
+		c.String(200, "pong too....")
+	})
 	ping.Get("/string", func(c *illusion.Context) {
 		//c.Status(200)
 		c.String(200, "pong")
