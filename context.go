@@ -73,7 +73,7 @@ func (it *Context) reset() {
 	it.Keys = make(map[string]interface{})
 	//it.Error = nil
 	it.aborted = false
-	it.template.Clear()
+//	it.template.Clear()
 }
 
 //好像还有个问题, 让我想想？？？？？？？

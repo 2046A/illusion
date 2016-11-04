@@ -2,13 +2,16 @@
 package illusion
 
 import (
-	"html/template"
+	//"html/template"
 	"strings"
 	//"io"
 	"bytes"
 	"errors"
 	//"fmt"
+	"github.com/flosch/pongo2"
 )
+
+type Value pongo2.Context
 
 //好像只要一个就行了
 //所以Context只需要持有这个接口就好了
@@ -18,7 +21,7 @@ type IllusionTemplate interface {
 	Content(string, interface{}) []byte
 
 	//清理Buffer中原有的内容
-	Clear()
+	//Clear()
 	//这个起个什么名字好呢
 	//这个名字好像很不错
 	//echo(...interface{})
@@ -51,12 +54,21 @@ func newTemplate(basePath string, writer *ContentWriter) *Template {
 
 //渲染这个文件
 //返回最终结果 string
-func (it *Template) Content(file string, value interface{}) (result []byte) {
+func (it *Template) Content(file string, value Value) []byte {
 	file = strings.TrimPrefix(file, "/")
 	finalPath := it.baseFileLocation + file
-	t, err := template.ParseFiles(finalPath)
+	tpl,err := pongo2.FromFile(finalPath)
 	if err != nil {
-		appendError(errorInfo{Error:err, Level:logOnError})
+		appendError(errorInfo{Error:err, Level:panicOnError})
+	}
+	result,err := tpl.Execute(value)
+	if err != nil {
+		appendError(errorInfo{Error:err, Level:panicOnError})
+	}
+	return []byte(result)
+	/*t, err := template.ParseFiles(finalPath)
+	if err != nil {
+
 		return
 	}
 	err = t.Execute(it.contentWriter, value)
@@ -64,7 +76,7 @@ func (it *Template) Content(file string, value interface{}) (result []byte) {
 		appendError(errorInfo{Error:err, Level:panicOnError})
 	}
 	result = it.contentWriter.Read()
-	return
+	return*/
 }
 
 //哎呦，层层调用
