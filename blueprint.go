@@ -186,7 +186,7 @@ func (it *Blueprint) fullChain() HandlerInfoChain {
 	for httpMethod, urlMap := range it.HttpRouterMap {
 		//urlMap为url -> handler
 		for url, handler := range urlMap {
-			handlerChain := make(HandlerChain, 0, MaxHandlerNumber)      //这个...
+			handlerChain := make(HandlerChain, 0, MaxHandlerNumber) //这个...
 			handlerChain = append(handlerChain, it.BeforeChain...)
 			handlerChain = append(handlerChain, handler)
 			handlerChain = append(handlerChain, it.AfterChain...)
@@ -252,7 +252,7 @@ func (it *Blueprint) Handle(httpMethod, relativePath string, handler HandlerFunc
 	if matches, err := regexp.MatchString("^[A-Z]+$", httpMethod); !matches || err != nil {
 		//it.Error = err
 		//errHandlerInstance().AppendError(err)
-		appendError(errorInfo{Error: errors.New("http method " + httpMethod + " is not valid"), Level:panicOnError})
+		appendError(errorInfo{Error: errors.New("http method " + httpMethod + " is not valid"), Level: panicOnError})
 		//panic("http method " + httpMethod + " is not valid")
 	}
 	return it.handle(httpMethod, relativePath, handler)
@@ -322,8 +322,8 @@ func (it *Blueprint) ServeStatic(relativePath string, fs http.FileSystem) {
 //var _once sync.Once
 
 //func errorBlueprint()*Blueprint{
-	//_once.Do(func(){
+//_once.Do(func(){
 //		_errorBlueprint = BluePrint("/error", "error blueprint")
-	//})
-	//return _errorBlueprint
+//})
+//return _errorBlueprint
 //}

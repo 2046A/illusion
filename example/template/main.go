@@ -19,21 +19,21 @@ func main() {
 		//c.Status(200)
 		c.View("index.html", illusion.TemplateContext{"Title": "我就是这么吊"})
 	})
-	index.Get("/redirect", func(c *illusion.Context){
+	index.Get("/redirect", func(c *illusion.Context) {
 		c.Redirect("/index")
 	})
 	ping := illusion.BluePrint("/ping", "ping")
-	ping.Get("/", func(c *illusion.Context){
+	ping.Get("/", func(c *illusion.Context) {
 		c.String(200, "pong too....")
 	})
 	ping.Get("/string", func(c *illusion.Context) {
 		//c.Status(200)
 		c.String(200, "pong")
 	})
-	ping.Get("/json", func(c *illusion.Context){
-		c.Json(200, Title{Title:"I am ok here"})
+	ping.Get("/json", func(c *illusion.Context) {
+		c.Json(200, Title{Title: "I am ok here"})
 	})
-	ping.Get("/kamila", func(c *illusion.Context){
+	ping.Get("/kamila", func(c *illusion.Context) {
 		c.Json(200, Title{Title: "Shenm"})
 	})
 	app.Register(index)

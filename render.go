@@ -13,7 +13,7 @@ import (
 
 //type Value pongo2.Context
 //type Value struct{
-	//pongo2.Context
+//pongo2.Context
 //}
 type TemplateContext map[string]interface{}
 
@@ -22,7 +22,7 @@ type TemplateContext map[string]interface{}
 type IllusionTemplate interface {
 	//渲染文件
 	//获取文件内容
-	Content(string, TemplateContext) []byte
+	Content(string, TemplateContext) ([]byte,error)
 
 	//清理Buffer中原有的内容
 	Clear()
@@ -58,18 +58,20 @@ func newTemplate(basePath string, writer *ContentWriter) *Template {
 
 //渲染这个文件
 //返回最终结果 string
-func (it *Template) Content(file string, value TemplateContext) []byte {
+func (it *Template) Content(file string, value TemplateContext) ([]byte,error) {
 	file = strings.TrimPrefix(file, "/")
 	finalPath := it.baseFileLocation + file
-	tpl,err := pongo2.FromFile(finalPath)
+	tpl, err := pongo2.FromFile(finalPath)
 	if err != nil {
-		appendError(errorInfo{Error:err, Level:panicOnError})
+		appendError(errorInfo{Error: err, Level: logOnError})
+		return nil,err
 	}
-	result,err := tpl.Execute(pongo2.Context(value))
+	result, err := tpl.Execute(pongo2.Context(value))
 	if err != nil {
-		appendError(errorInfo{Error:err, Level:panicOnError})
+		appendError(errorInfo{Error: err, Level: logOnError})
+		return nil,err
 	}
-	return []byte(result)
+	return []byte(result),nil
 	/*t, err := template.ParseFiles(finalPath)
 	if err != nil {
 
@@ -90,7 +92,7 @@ func (it *Template) Clear() {
 }
 
 type ContentWriter struct {
-	buf   bytes.Buffer
+	buf bytes.Buffer
 	//Error error
 }
 
@@ -101,7 +103,7 @@ func newContentWriter() *ContentWriter {
 func (writer *ContentWriter) Write(p []byte) (n int, err error) {
 	n, err = writer.buf.Write(p)
 	if n < len(p) {
-		appendError(errorInfo{Error:errors.New("未完全获取模板内容"), Level: logOnError})
+		appendError(errorInfo{Error: errors.New("未完全获取模板内容"), Level: logOnError})
 		//writer.Error = errors.New("没写全")
 	}
 	return n, err

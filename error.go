@@ -10,7 +10,8 @@ import (
 )
 
 type ErrorEnum uint8
-const BUFFER_SIZE = 100
+
+const BUFFER_SIZE = 1000
 
 const (
 	panicOnError ErrorEnum = iota
@@ -46,6 +47,14 @@ func handleError() {
 	}
 }
 
+//附加错误信息
+//如果errorChannel已满，就丢弃这个错误
 func appendError(err errorInfo) {
-	errorChannel <- err
+	select {
+	case errorChannel <- err:
+		break
+	default:
+		break
+	}
+
 }

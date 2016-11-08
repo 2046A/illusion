@@ -1,0 +1,4 @@
+package: illusion
+import:
+    - package: github.com/flosch/pongo2
+      version: 3.0

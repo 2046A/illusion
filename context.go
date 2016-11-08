@@ -12,7 +12,7 @@ import (
 	//"path/filepath"
 	//	"encoding/json"
 	"encoding/json"
-//	"fmt"
+	//	"fmt"
 )
 
 //这个好像没什么用
@@ -73,7 +73,7 @@ func (it *Context) reset() {
 	it.Keys = make(map[string]interface{})
 	//it.Error = nil
 	it.aborted = false
-//	it.template.Clear()
+	//	it.template.Clear()
 }
 
 //好像还有个问题, 让我想想？？？？？？？
@@ -268,9 +268,9 @@ func (it *Context) Redirect(uri string) {
 //json数据的返回
 func (it *Context) Json(status int, value interface{}) {
 	//todo insert code here
-	data,err := json.Marshal(value)
+	data, err := json.Marshal(value)
 	if err != nil {
-		appendError(errorInfo{Error: err, Level:panicOnError})
+		appendError(errorInfo{Error: err, Level: panicOnError})
 	}
 	//it.Status()
 	it.Writer.WriteHeader(status)
@@ -288,17 +288,13 @@ func (it *Context) String(status int, value string) {
 
 //添加echo和view两个方法就好了
 func (it *Context) View(path string, value TemplateContext) {
-	content := it.template.Content(path, value)
-	//	err := it.template.Error()
-	//if err {
-	//	appendError(errorInfo{Error: err, Level: allOnError})
-	//	}
-	//it.Error = it.template.Error()
-	//if it.Error != nil {
-	//	return
-	//}
-	it.Writer.WriteHeader(http.StatusOK)
-	it.Writer.Write(content)
+	if content,err := it.template.Content(path, value);err!=nil{
+		it.Writer.WriteHeader(http.StatusNotFound)
+		//it.Writer.Write([]byte)
+	} else {
+		it.Writer.WriteHeader(http.StatusOK)
+		it.Writer.Write(content)
+	}
 }
 
 //其他的一些再说，反正我也不懂

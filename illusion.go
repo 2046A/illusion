@@ -44,31 +44,31 @@ type Illusion struct {
 	//render Render
 
 	//错误信息
-	Error                 error
+	Error error
 
 	//最终查找数据存放地
-	methodTree            MethodTree
+	methodTree MethodTree
 
 	//BluePrint存放地，调用register时blueprint会被临时存放在这里
 	//在最终运行前，这个应该被垃圾回收
 	//怎样主动回收 ?
-	bluePrintTree         BluePrintTree
+	bluePrintTree BluePrintTree
 
 	//Context临时存放地点，随时可以被回收的地点
 	//不安全，但能用
-	pool                  sync.Pool
+	pool sync.Pool
 
 	//每个Context都会附着一个template，用以渲染模板文件
 	//不安全，但能用:))
-	templatePool          sync.Pool
+	templatePool sync.Pool
 	//writerPool sync.Pool //获取渲染后文件内容
-	viewPath              string //模板文件基础路径
+	viewPath string //模板文件基础路径
 
 	//405错误
-	NoMethodHandlerChain  HandlerChain
+	NoMethodHandlerChain HandlerChain
 
 	//404错误
-	NoFoundHandlerChain   HandlerChain
+	NoFoundHandlerChain HandlerChain
 
 	//再持有一个logger对象
 	//logger  *Logger
@@ -144,8 +144,8 @@ func App() (illusion *Illusion) {
 		RedirectFixedPath:      false,
 		HandleMethodNotAllowed: true, //并没有使用的一个特性 -> 现在我尝试使用一下
 		ForwardedByClientIP:    true,
-		NoMethodHandlerChain: make(HandlerChain,0, 10),
-		NoFoundHandlerChain: make(HandlerChain,0, 10),
+		NoMethodHandlerChain:   make(HandlerChain, 0, 10),
+		NoFoundHandlerChain:    make(HandlerChain, 0, 10),
 		//loggerPath: loggerPath,
 		//logger: nil,
 	}
@@ -224,7 +224,7 @@ func (it *Illusion) lazyRegisterAll() *Illusion {
 	for _, bluePrint := range it.bluePrintTree {
 		handlerInfoChain := bluePrint.fullChain()
 		for _, info := range handlerInfoChain {
-//			fmt.Println("append uri:" + info.RelativePath)
+			//			fmt.Println("append uri:" + info.RelativePath)
 			it.addRoute(info.HttpMethod, info.RelativePath, info.HandlerChain)
 		}
 	}
@@ -288,19 +288,20 @@ func (it *Illusion) handleRequest(context *Context) {
 	httpMethod := context.Request.Method
 	path := context.Request.URL.Path
 
-	//fmt.Println("start to handle " + httpMethod + "\t " + path)
+	fmt.Println("start to handle " + httpMethod + "\t " + path)
 
 	//找到http方法下面挂着的根
 	//如果确实从map中获取到说明有这个http方法对应的url->handler
 	//否则就是404或者405错误,后面会处理
 	if root, ok := it.methodTree[httpMethod]; ok {
+		fmt.Println("catch " + httpMethod + "\t" + path)
 		handlers, params, tsr := root.getValue(path)
-		if handlers != nil{
+		if handlers != nil {
 			context.handlers = handlers
 			context.Params = params
 			context.Next()
 			return
-		} else if httpMethod != "CONNECT" && path != "/"{
+		} else if httpMethod != "CONNECT" && path != "/" {
 			if tsr && it.RedirectTrailingSlash {
 				redirectTrailingSlash(context)
 				return
@@ -313,7 +314,7 @@ func (it *Illusion) handleRequest(context *Context) {
 
 	//到这说明没找到相应的handler
 	if it.HandleMethodNotAllowed {
-		for _,tree := range it.methodTree {
+		for _, tree := range it.methodTree {
 			if handler, _, _ := tree.getValue(path); handler != nil {
 				//这是405问题
 				context.handlers = it.NoMethodHandlerChain
@@ -330,12 +331,13 @@ func (it *Illusion) handleRequest(context *Context) {
 
 //两个处理错误的handler
 //method not allowed 错误
-func methodNotAllowedHandler(c *Context){
+func methodNotAllowedHandler(c *Context) {
 	//c.Status(405)
 	c.String(405, "405 Not Allowed")
 }
+
 //404 not found 错误
-func urlNotFoundHandler(c *Context){
+func urlNotFoundHandler(c *Context) {
 	//c.Status(404)
 	//c.String(404, "404 not found")
 
