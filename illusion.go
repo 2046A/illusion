@@ -407,3 +407,4 @@ func (it *Illusion) staticFS(relativePath string, fs http.FileSystem) *Illusion 
 	it.Register(FSBluePrint)
 	return it
 }
+

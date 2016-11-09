@@ -23,6 +23,10 @@ func main() {
 		c.Redirect("/index")
 	})
 	ping := illusion.BluePrint("/ping", "ping")
+	ping.Before(func(c *illusion.Context){
+		//illusion.StartSession(c)
+		//sess := c.StartSession()
+	})
 	ping.Get("/", func(c *illusion.Context) {
 		c.String(200, "pong too....")
 	})
