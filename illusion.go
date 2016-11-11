@@ -155,6 +155,7 @@ func App() (illusion *Illusion) {
 	illusion.templatePool.New = func() interface{} {
 		return illusion.allocateTemplate(illusion.viewPath, illusion.allocateWriter())
 	}
+	//这两个错误处理的handler，可以在外部随意设置
 	illusion.NoFoundHandlerChain = append(illusion.NoFoundHandlerChain, urlNotFoundHandler)
 	illusion.NoMethodHandlerChain = append(illusion.NoMethodHandlerChain, methodNotAllowedHandler)
 	//illusion.writerPool.New = func()interface{} {
@@ -163,6 +164,16 @@ func App() (illusion *Illusion) {
 	//b =  Blueprint("/", "default")
 	//illusion.Register(b)
 	return
+}
+
+func (it *Illusion)SetNotFoundHandler(handler HandlerFunc) {
+	it.NoFoundHandlerChain = it.NoFoundHandlerChain[0:0]
+	it.NoFoundHandlerChain = append(it.NoFoundHandlerChain, handler)
+}
+
+func (it *Illusion)SetMethodNotAllowedHandler(handler HandlerFunc) {
+	it.NoMethodHandlerChain = it.NoMethodHandlerChain[0:0]
+	it.NoMethodHandlerChain = append(it.NoMethodHandlerChain, handler)
 }
 
 func (it *Illusion) allocateContext() *Context {
@@ -245,11 +256,15 @@ func (it *Illusion) addRoute(httpMethod, uriPath string, handlerChain HandlerCha
 func (it *Illusion) Run(address string) (err error) {
 	//address := resolveAddress
 	fmt.Println("Listening and serving HTTP on ", address)
-	fmt.Println("********* Start To Handle ERROR ***********")
+	fmt.Println("********* Start To Handle Request ***********")
 	go handleError()
 
 	//准备好所有的处理handler
 	it.lazyRegisterAll()
+
+
+	//it.SetNotFoundHandler(urlNotFoundHandler)
+	//it.SetMethodNotAllowedHandler(methodNotAllowedHandler)
 
 	//illusion实现了所有相关的函数
 	err = http.ListenAndServe(address, it)
@@ -341,7 +356,7 @@ func urlNotFoundHandler(c *Context) {
 	//c.Status(404)
 	//c.String(404, "404 not found")
 
-	c.View("404.html", TemplateContext{"Title": "404 not found"})
+	c.String(200, "Page Not Found")
 }
 
 func redirectTrailingSlash(c *Context) {

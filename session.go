@@ -1,6 +1,7 @@
 /*
  * 对session的处理
  * 最简单的session实现，你可以使用任意自己实现的session管理工具
+ * 所以这个session更像是演示之用, 你懂的
  * author:
  */
 package illusion

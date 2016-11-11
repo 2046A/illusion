@@ -8,7 +8,7 @@ func main() {
 	ping := illusion.BluePrint("/", "ping")
 	ping.Get("ping/:name", func(c *illusion.Context) {
 		name := c.Param("name")
-		c.String("hello " + name)
+		c.String(200, "hello " + name)
 	})
 	app.Register(ping)
 	//也可以分散到不同的文件中使用

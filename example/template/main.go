@@ -11,8 +11,13 @@ type Title struct {
 	Title string
 }
 
+func notFound(c *illusion.Context){
+	c.View("404.html", illusion.TemplateContext{})
+}
+
 func main() {
 	app := illusion.App()
+	app.SetNotFoundHandler(notFound)
 	app.ViewPath("example/template/view")
 	app.Resource("example/static")
 	app.LogPath("example/template/log")
