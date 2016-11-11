@@ -11,13 +11,7 @@ package illusion
 import (
 	"errors"
 	"regexp"
-	//"path/filepath"
 	"net/http"
-	//	"path"
-	//	"fmt"
-	//	"fmt"
-	//	"path"
-	///"sync"
 )
 
 const (
@@ -177,17 +171,20 @@ func BluePrint(path, name string) *Blueprint {
 
 //结合beforeChain + Handler + afterChain形成一个调用链
 // methodHashMap形成整个链
+// 注意，这里默认插入cookie中间件
 func (it *Blueprint) fullChain() HandlerInfoChain {
 	//if it.Error != nil {
 	//	return nil
 	//}
 	chain := make(HandlerInfoChain, 0, CompleteHandlerChainSize) //还得const来调整
-	//handlerChain := make(HandlerChain, 0, MaxHandlerNumber)      //这个...
+
 	for httpMethod, urlMap := range it.HttpRouterMap {
 		//urlMap为url -> handler
 		for url, handler := range urlMap {
 			handlerChain := make(HandlerChain, 0, MaxHandlerNumber) //这个...
+			handlerChain = append(handlerChain, getCookie)
 			handlerChain = append(handlerChain, it.BeforeChain...)
+			handlerChain = append(handlerChain, appendCookie)
 			handlerChain = append(handlerChain, handler)
 			handlerChain = append(handlerChain, it.AfterChain...)
 			chain = append(chain, HandlerInfo{HttpMethod: httpMethod, RelativePath: url, HandlerChain: handlerChain})
