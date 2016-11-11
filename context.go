@@ -12,7 +12,8 @@ import (
 	//"path/filepath"
 	//	"encoding/json"
 	"encoding/json"
-	//	"fmt"
+//	"fmt"
+	"errors"
 )
 
 //这个好像没什么用
@@ -261,8 +262,10 @@ func (it *Context) Status(code int) {
 //重定向
 func (it *Context) Redirect(uri string) {
 	//todo insert code here
-	it.Writer.Header().Set("Location", uri)
-	it.Writer.WriteHeader(http.StatusMovedPermanently)
+	it.Header("Location", uri)
+	it.Status(http.StatusMovedPermanently)
+	//it.Writer.Header().Set("Location", uri)
+	//it.Writer.WriteHeader(http.StatusMovedPermanently)
 }
 
 //json数据的返回
@@ -273,7 +276,8 @@ func (it *Context) Json(status int, value interface{}) {
 		appendError(errorInfo{Error: err, Level: panicOnError})
 	}
 	//it.Status()
-	it.Writer.WriteHeader(status)
+	//it.Writer.WriteHeader(status)
+	it.Status(status)
 	it.Writer.Write(data)
 }
 
@@ -287,6 +291,7 @@ func (it *Context) String(status int, value string) {
 }
 
 //添加echo和view两个方法就好了
+
 func (it *Context) View(path string, value TemplateContext) {
 	if content,err := it.template.Content(path, value);err!=nil{
 		it.Writer.WriteHeader(http.StatusNotFound)
@@ -295,6 +300,14 @@ func (it *Context) View(path string, value TemplateContext) {
 		it.Writer.WriteHeader(http.StatusOK)
 		it.Writer.Write(content)
 	}
+}
+
+func (it *Context)SetCookie(cookie *http.Cookie) error{
+	if cookie == nil {
+		return errors.New("cookie不能为空")
+	}
+	http.SetCookie(it.Writer, cookie)
+	return nil
 }
 
 //其他的一些再说，反正我也不懂
