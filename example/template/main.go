@@ -3,6 +3,7 @@ package main
 import (
 	//"bytes"
 	"illusion"
+//	"net/http"
 )
 
 type Title struct {
@@ -15,6 +16,12 @@ func main() {
 	app.Resource("example/static")
 	app.LogPath("example/template/log")
 	index := illusion.BluePrint("/", "index")
+	index.Before(func(c *illusion.Context){
+		//if _, ok := c.Retrieve(illusion.CookieName); ok{
+			//c.String(http.StatusOK, "居然真的设置了cookie:" + val.(string))
+		//	c.Abort()
+		//}
+	})
 	index.Get("/index", func(c *illusion.Context) {
 		//c.Status(200)
 		c.View("index.html", illusion.TemplateContext{"Title": "我就是这么吊"})

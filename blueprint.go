@@ -11,14 +11,7 @@ package illusion
 import (
 	"errors"
 	"regexp"
-	//"path/filepath"
 	"net/http"
-	//	"path"
-	//	"fmt"
-	//	"fmt"
-	//	"path"
-	///"sync"
-	"illusion/middleware"
 )
 
 const (
@@ -188,12 +181,12 @@ func (it *Blueprint) fullChain() HandlerInfoChain {
 	for httpMethod, urlMap := range it.HttpRouterMap {
 		//urlMap为url -> handler
 		for url, handler := range urlMap {
-			handlerChain := make(HandlerChain, 0, MaxHandlerNumber)      //这个...
-			handlerChain = append(handlerChain, middleware.BeforeHandle)
+			handlerChain := make(HandlerChain, 0, MaxHandlerNumber) //这个...
+			handlerChain = append(handlerChain, getCookie)
 			handlerChain = append(handlerChain, it.BeforeChain...)
+			handlerChain = append(handlerChain, appendCookie)
 			handlerChain = append(handlerChain, handler)
 			handlerChain = append(handlerChain, it.AfterChain...)
-			handlerChain = append(handlerChain, middleware.AfterHandle)
 			chain = append(chain, HandlerInfo{HttpMethod: httpMethod, RelativePath: url, HandlerChain: handlerChain})
 			//handlerChain = handlerChain[0:0] //重设一下
 		}

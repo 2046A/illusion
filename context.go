@@ -12,7 +12,7 @@ import (
 	//"path/filepath"
 	//	"encoding/json"
 	"encoding/json"
-//	"fmt"
+	//	"fmt"
 	"errors"
 )
 
@@ -293,7 +293,7 @@ func (it *Context) String(status int, value string) {
 //添加echo和view两个方法就好了
 
 func (it *Context) View(path string, value TemplateContext) {
-	if content,err := it.template.Content(path, value);err!=nil{
+	if content, err := it.template.Content(path, value); err != nil {
 		it.Writer.WriteHeader(http.StatusNotFound)
 		//it.Writer.Write([]byte)
 	} else {
@@ -302,7 +302,7 @@ func (it *Context) View(path string, value TemplateContext) {
 	}
 }
 
-func (it *Context)SetCookie(cookie *http.Cookie) error{
+func (it *Context) SetCookie(cookie *http.Cookie) error {
 	if cookie == nil {
 		return errors.New("cookie不能为空")
 	}
