@@ -4,10 +4,11 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
-	"net/http"
+//	"net/http"
 	//"context"
 	//"time"
-	"log"
+//	"log"
+	//"go/token"
 )
 
 const (
@@ -24,29 +25,33 @@ func SessionId() string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
-func getCookie(c *Context) {
-	cookie, err := c.Request.Cookie(CookieName)
+//func getCookie(c *Context) {
+	//c.CouldInsertCookie()
+	//if c.HasCookie() {
+	//	cookie,_ := c.GetCookie()
+	//	c.Append(CookieName, cookie.Value)
+	//}
+	//return
+	/*cookie, err := c.Request.Cookie(CookieName)
 	if err != nil {
 		return
 	}
-	log.Println("value:" + cookie.Value)
-	c.Append(CookieName, cookie.Value)
-}
+	//log.Println("value:" + cookie.Value)
+	c.Append(CookieName, cookie.Value)*/
+//}
 
 func appendCookie(c *Context) {
-	log.Println("怎么可能")
-	if _, ok := c.Retrieve(CookieName); ok {
-		log.Println("确实存在cookie")
+	//log.Println("怎么可能")
+	/*if _, ok := c.Retrieve(CookieName); ok {
+	//	log.Println("确实存在cookie")
+		return
+	}*/
+	if c.HasCookie() {
 		return
 	}
-	cookie := &http.Cookie{
-		Name:     CookieName,
-		Value:    SessionId(),
-		Path:     "/",
-		MaxAge:   MaxAge,
-		HttpOnly: false,
-	}
+	c.SetCookie()
+	//c.SetCookie(cookie)
 	//c.Writer.Header().
 	//c.Writer.Header().
-	http.SetCookie(c.Writer, cookie)
+	//http.SetCookie(c.Writer, cookie)
 }

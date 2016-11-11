@@ -4,6 +4,7 @@ import (
 	//"bytes"
 	"illusion"
 //	"net/http"
+//	"net/http"
 )
 
 type Title struct {
@@ -17,14 +18,24 @@ func main() {
 	app.LogPath("example/template/log")
 	index := illusion.BluePrint("/", "index")
 	index.Before(func(c *illusion.Context){
-		//if _, ok := c.Retrieve(illusion.CookieName); ok{
-			//c.String(http.StatusOK, "居然真的设置了cookie:" + val.(string))
-		//	c.Abort()
-		//}
+		if c.HasCookie() {
+			sessionId,_ := c.GetSessionId()
+			session, err := illusion.Session().StartSession(sessionId)
+			if err != nil {
+				c.String(200, "不应该出错啊")
+				c.Abort()
+			}
+			session.Store("name", "dean")
+		}
 	})
 	index.Get("/index", func(c *illusion.Context) {
+		sessionId, _ := c.GetSessionId()
+		session,_ := illusion.Session().StartSession(sessionId)
+		val,_ := session.Read("name")
 		//c.Status(200)
-		c.View("index.html", illusion.TemplateContext{"Title": "我就是这么吊"})
+		//sess,_ := c.Retrieve("sess")
+		//val,_ := sess.(illusion.MemorySession).Read("name")
+		c.View("index.html", illusion.TemplateContext{"Title": val})
 	})
 	index.Get("/redirect", func(c *illusion.Context) {
 		c.Redirect("/index")

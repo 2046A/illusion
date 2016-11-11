@@ -13,7 +13,7 @@ import (
 	//	"encoding/json"
 	"encoding/json"
 	//	"fmt"
-	"errors"
+//	"errors"
 )
 
 //这个好像没什么用
@@ -302,14 +302,51 @@ func (it *Context) View(path string, value TemplateContext) {
 	}
 }
 
-func (it *Context) SetCookie(cookie *http.Cookie) error {
-	if cookie == nil {
-		return errors.New("cookie不能为空")
+func (it *Context) SetCookie() error {
+	cookie := &http.Cookie{
+		Name:     CookieName,
+		Value:    SessionId(),
+		Path:     "/",
+		MaxAge:   MaxAge,
+		HttpOnly: false,
 	}
 	http.SetCookie(it.Writer, cookie)
 	return nil
 }
 
+func (it *Context)HasCookie() bool{
+	if _, err := it.Request.Cookie(CookieName);err!=nil {
+		return false
+	}
+	return true
+}
+
+//如果有cookie，插入request中，否则什么都不做
+//好屌的一个函数
+//func (it *Context)CouldInsertCookie(){
+//	if it.HasCookie() {
+//		cookie,_ := it.GetCookie()
+//		it.Append(CookieName, cookie.Value)
+//	}
+//}
+
+func (it *Context)GetCookie() (*http.Cookie,error) {
+	//if it.HasCookie() {
+		cookie,err := it.Request.Cookie(CookieName)
+		if err!=nil {
+			return nil, err
+		}
+		return cookie, nil
+	//return nil,errors.New("无cookie")
+}
+
+func (it *Context)GetSessionId() (string,error){
+	if cookie,err := it.GetCookie();err != nil{
+		return "", err
+	}else {
+		return cookie.Value, nil
+	}
+}
 //其他的一些再说，反正我也不懂
 
 /*******************

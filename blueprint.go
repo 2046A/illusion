@@ -182,7 +182,7 @@ func (it *Blueprint) fullChain() HandlerInfoChain {
 		//urlMap为url -> handler
 		for url, handler := range urlMap {
 			handlerChain := make(HandlerChain, 0, MaxHandlerNumber) //这个...
-			handlerChain = append(handlerChain, getCookie)
+			//handlerChain = append(handlerChain, getCookie)
 			handlerChain = append(handlerChain, it.BeforeChain...)
 			handlerChain = append(handlerChain, appendCookie)
 			handlerChain = append(handlerChain, handler)
