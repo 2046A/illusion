@@ -303,13 +303,13 @@ func (it *Illusion) handleRequest(context *Context) {
 	httpMethod := context.Request.Method
 	path := context.Request.URL.Path
 
-	fmt.Println("start to handle " + httpMethod + "\t " + path)
+	//fmt.Println("start to handle " + httpMethod + "\t " + path)
 
 	//找到http方法下面挂着的根
 	//如果确实从map中获取到说明有这个http方法对应的url->handler
 	//否则就是404或者405错误,后面会处理
 	if root, ok := it.methodTree[httpMethod]; ok {
-		fmt.Println("catch " + httpMethod + "\t" + path)
+		//fmt.Println("catch " + httpMethod + "\t" + path)
 		handlers, params, tsr := root.getValue(path)
 		if handlers != nil {
 			context.handlers = handlers
